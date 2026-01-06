@@ -7,7 +7,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ companyName, logo }) => {
   return (
-    <header className="w-full flex justify-center items-center py-4 bg-white sticky top-0 z-50 shadow-md">
+    <header className="w-full flex justify-center items-center py-4 bg-grey sticky top-0 z-50 shadow-md">
       {/* Render logo if available */}
       {logo && (
         <img

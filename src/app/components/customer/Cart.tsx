@@ -74,7 +74,7 @@ export function Cart() {
       </div>
 
       {/* Fixed Bottom Summary */}
-      <div className="fixed bottom-20 left-0 right-0 bg-white dark:bg-gray-950 border-t p-4">
+      <div className="sticky bottom-16 top-80 left-0 right-0 bg-white dark:bg-gray-950 border-t p-4">
         <div className="flex items-center justify-between mb-4">
           <span className="text-lg">Subtotal</span>
           <span className="text-2xl">${subtotal.toFixed(2)}</span>

@@ -137,7 +137,7 @@ export function Checkout() {
       </div>
 
       {/* Fixed Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t p-4">
+      <div className="sticky bottom-16 left-0 right-0 bg-white dark:bg-gray-900 border-t p-4">
         <div className="flex items-center justify-between mb-4">
           <span className="text-lg">Total</span>
           <span className="text-2xl">${total.toFixed(2)}</span>
