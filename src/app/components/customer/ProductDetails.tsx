@@ -97,7 +97,7 @@ export function ProductDetails() {
       </div>
 
       {/* Fixed Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-950 border-t">
+      <div className="bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-950 border-t">
         <Button
           onClick={handleAddToCart}
           disabled={product.stock === 0}

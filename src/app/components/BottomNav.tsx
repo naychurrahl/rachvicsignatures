@@ -11,7 +11,7 @@ export function BottomNav() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t z-50 safe-bottom">
+    <nav className="fixed sticky bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t z-50 safe-bottom">
       <div className="grid grid-cols-4 h-16">
         <button
           onClick={() => navigate('/')}
