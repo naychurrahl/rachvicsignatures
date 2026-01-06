@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import Header from "../Header";
+import logo from "../ui/logo.png";
 
 export function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -21,29 +22,12 @@ export function Home() {
     return matchesCategory && matchesSearch;
   });
 
-  const navItems = [
-    { label: "Home", href: "#" },
-    { label: "About", href: "#" },
-    { label: "Services", href: "#" },
-    { label: "Contact", href: "#" },
-  ];
-
   return (
     <>
       <div className="pb-20">
       <Header
-        logo={
-          <img
-            src={"https://images.unsplash.com/photo-1507473885765-e6ed057f782c"}
-            className="h-8 w-8"
-          />
-        }
-        navItems={navItems}
-        right={
-          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
-            Login
-          </button>
-        }
+          logo={logo}
+          companyName={"Rachvic Signatures"}
       />
         {/* Search Bar */}
         <div className="sticky top-0 bg-white dark:bg-gray-950 z-10 p-4 border-b">
