@@ -33,7 +33,7 @@ export interface Staff {
   status: 'active' | 'inactive';
 }
 
-export const categories = ['All', 'Electronics', 'Clothing', 'Home', 'Books'];
+export const categories = ['All', 'Jeans', 'Ready made', 'Children', 'Women', 'Men'];
 
 export const mockProducts: Product[] = [
   {
