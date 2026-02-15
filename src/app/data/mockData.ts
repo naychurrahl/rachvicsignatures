@@ -6,7 +6,7 @@ export interface Product {
   price: number;
   image: string;
   stock: number;
-  category: string;
+  category: string[];
   description: string;
 }
 
@@ -42,7 +42,7 @@ export const mockProducts: Product[] = [
     price: 79.99,
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
     stock: 15,
-    category: 'Electronics',
+    category: ['Jeans', 'Children'],
     description: 'High-quality wireless headphones with noise cancellation and long battery life.'
   },
   {
@@ -51,7 +51,7 @@ export const mockProducts: Product[] = [
     price: 199.99,
     image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
     stock: 8,
-    category: 'Electronics',
+    category: ['Electronics'],
     description: 'Feature-rich smartwatch with health tracking and notifications.'
   },
   {
@@ -60,7 +60,7 @@ export const mockProducts: Product[] = [
     price: 24.99,
     image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
     stock: 50,
-    category: 'Clothing',
+    category: ['Ready made'],
     description: 'Comfortable 100% cotton t-shirt in various colors.'
   },
   {
@@ -69,7 +69,7 @@ export const mockProducts: Product[] = [
     price: 89.99,
     image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=400',
     stock: 12,
-    category: 'Home',
+    category: ['Home'],
     description: 'Programmable coffee maker with thermal carafe.'
   },
   {
@@ -78,7 +78,7 @@ export const mockProducts: Product[] = [
     price: 14.99,
     image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400',
     stock: 30,
-    category: 'Books',
+    category: ['Books'],
     description: 'Bestselling fiction novel by acclaimed author.'
   },
   {
@@ -87,7 +87,7 @@ export const mockProducts: Product[] = [
     price: 119.99,
     image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400',
     stock: 20,
-    category: 'Clothing',
+    category: ['Ready made'],
     description: 'Lightweight running shoes with superior cushioning.'
   },
   {
@@ -96,7 +96,7 @@ export const mockProducts: Product[] = [
     price: 39.99,
     image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400',
     stock: 25,
-    category: 'Home',
+    category: ['Home'],
     description: 'Modern LED desk lamp with adjustable brightness.'
   },
   {
@@ -105,7 +105,7 @@ export const mockProducts: Product[] = [
     price: 59.99,
     image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400',
     stock: 5,
-    category: 'Electronics',
+    category: ['Electronics'],
     description: 'Portable Bluetooth speaker with 360-degree sound.'
   }
 ];
@@ -171,5 +171,12 @@ export const mockStaff: Staff[] = [
     email: 'bob@example.com',
     role: 'staff',
     status: 'inactive'
+  },
+  {
+    id: '4',
+    name: 'Mob Johnson',
+    email: 'mob@example.com',
+    role: 'staff',
+    status: 'active'
   }
 ];

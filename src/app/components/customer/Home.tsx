@@ -15,7 +15,7 @@ export function Home() {
 
   const filteredProducts = mockProducts.filter((product) => {
     const matchesCategory =
-      selectedCategory === "All" || product.category === selectedCategory;
+      selectedCategory === "All" || product.category.includes(selectedCategory);
     const matchesSearch = product.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
