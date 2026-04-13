@@ -81,15 +81,18 @@ export async function apiRequest({
 }
 
 export const baseUrl = "https://localhost:8283";
-const data = await apiRequest({
+
+const product = await apiRequest({
   url: `${baseUrl}/product`
 });
 
-export const categories = data.categories;
+export const categories = product.categories;
 
-export const mockProducts: Product[] = data.products;
+export const mockProducts: Product[] = product.products;
 
-export const mockOrders: Order[] = [
+export const mockOrders: Order[] = await apiRequest({
+  url: `${baseUrl}/orders`,
+});/* [
   {
     id: "ORD-001",
     date: "2026-01-06",
@@ -125,9 +128,11 @@ export const mockOrders: Order[] = [
       { ...mockProducts[2], quantity: 1 },
     ],
   },
-];
+]; */
 
-export const mockStaff: Staff[] = [
+export const mockStaff: Staff[] = await apiRequest({
+  url: `${baseUrl}/staff`,
+});/* [
   {
     id: "1",
     name: "John Doe",
@@ -156,4 +161,4 @@ export const mockStaff: Staff[] = [
     role: "staff",
     status: "active",
   },
-];
+]; */
