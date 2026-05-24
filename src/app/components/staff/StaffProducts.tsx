@@ -1,18 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Package, Plus } from "lucide-react";
-import { categories, mockProducts, Product, apiRequest, baseUrl } from "../../data/mockData";
-import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Label } from "../ui/label";
+import { Product } from "@/app/data/interFaces";
+import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
+import { Input } from "@/app/components/ui/input";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
+import { Label } from "@/app/components/ui/label";
 import { toast } from "sonner";
-
+import { useApp } from "@/app/contexts/AppContext";
 
 export function StaffProducts() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  //const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [stockValue, setStockValue] = useState("");
 
@@ -27,6 +34,28 @@ export function StaffProducts() {
     description: "",
   });
 
+  const { products } = useApp();
+
+  const addProduct = async (product: Product) => {
+    const add = await ApiRequest({
+      url: `${baseUrl}/product`,
+      method: "POST",
+      body: product,
+    });
+
+    return ({ add: add, product: product });
+  };
+
+  const updateProduct = async (product: Product) => {
+    const update = await ApiRequest({
+      url: `${baseUrl}/product`,
+      method: "PUT",
+      body: product,
+    });
+
+    return ({ update: update, product: product });
+  };
+
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
     setFormData({
@@ -40,11 +69,11 @@ export function StaffProducts() {
     });
     setShowDialog(true);
   };
-  
+
   const handleCreate = () => {
     setSelectedProduct(null);
     setFormData({
-      id: '',
+      id: "",
       name: "",
       price: 0,
       image: "",
@@ -57,29 +86,41 @@ export function StaffProducts() {
 
   const handleSave = async () => {
     if (selectedProduct) {
-      const put = await apiRequest({
+      //const put = await ApiRequest({
+      /* const put = await ApiRequest({
         url: `${baseUrl}/product`,
         method: "PUT",
         body: formData
       });
 
-      console.log({"put": put});
+      console.log({"put": put, product: formData}); */
+
+      const response = await updateProduct(formData);
+
+      console.log(response);
+
     } else {
-      const add = await apiRequest({
+      /* const add = await ApiRequest({
         url: `${baseUrl}/product`,
         method: "POST",
         body: formData,
       });
 
-      console.log({ "add": add });
+      console.log({ add: add, product: formData }); */
+
+      const response = await addProduct(formData);
+
+      console.log(response);
     }
     toast.success(
-      selectedProduct ? "Product updated" : "Product created",
+      selectedProduct
+        ? `${selectedProduct.name} updated`
+        : `${formData.name} created`,
     );
     setShowDialog(false);
   };
 
-  const filteredProducts = mockProducts.filter((product) =>
+  const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
@@ -88,7 +129,7 @@ export function StaffProducts() {
     setSelectedProduct(null);
     setStockValue("");
   };
-
+  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
@@ -226,7 +267,10 @@ export function StaffProducts() {
                 id="category"
                 value={formData.category.join(", ")}
                 onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value.split(", ") })
+                  setFormData({
+                    ...formData,
+                    category: e.target.value.split(", "),
+                  })
                 }
                 className="mt-1"
               />

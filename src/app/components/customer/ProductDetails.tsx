@@ -1,21 +1,24 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react';
-import { mockProducts } from '../../data/mockData';
-import { useApp } from '../../contexts/AppContext';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Plus, Minus, ShoppingCart } from "lucide-react";
+import { useApp } from "@/app/contexts/AppContext";
+import { Button } from "@/app/components/ui/button";
+import { Badge } from "@/app/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/app/components/ui/collapsible";
+import { toast } from "sonner";
 
 export function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useApp();
+  const { addToCart, products } = useApp();
   const [quantity, setQuantity] = useState(1);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
 
-  const product = mockProducts.find(p => p.id === id);
+  const product = products.find((p) => p.id === id);
 
   if (!product) {
     return (
@@ -26,7 +29,23 @@ export function ProductDetails() {
   }
 
   const handleAddToCart = () => {
-    addToCart({ ...product, quantity });
+    const expe = { ...product, quantity };
+
+    //console.log(JSON.stringify(expe));
+
+    const nui = {
+      id: "prod_69F74B1C1A0A4000033",
+      name: "Coffee Maker",
+      price: 89.99,
+      image:
+        "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=400",
+      stock: 12,
+      description: "Programmable coffee maker with thermal carafe.",
+      category: ["Pine apple"],
+      quantity: 6,
+    };
+
+    addToCart(expe);
     toast.success(`Added ${quantity} ${product.name} to cart`);
   };
 
@@ -34,14 +53,21 @@ export function ProductDetails() {
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b px-4 py-3 flex items-center">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 active:scale-90 transition-transform">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 -ml-2 active:scale-90 transition-transform"
+        >
           <ArrowLeft className="h-6 w-6" />
         </button>
       </div>
 
       {/* Image Carousel */}
       <div className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
-        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-cover"
+        />
       </div>
 
       {/* Content */}
@@ -54,7 +80,9 @@ export function ProductDetails() {
               product.stock < 10 ? (
                 <Badge variant="destructive">Only {product.stock} left</Badge>
               ) : (
-                <Badge variant="secondary">In Stock ({product.stock} available)</Badge>
+                <Badge variant="secondary">
+                  In Stock ({product.stock} available)
+                </Badge>
               )
             ) : (
               <Badge variant="destructive">Out of Stock</Badge>
@@ -66,16 +94,22 @@ export function ProductDetails() {
         <Collapsible open={descriptionOpen} onOpenChange={setDescriptionOpen}>
           <CollapsibleTrigger className="w-full text-left py-3 border-t border-b flex items-center justify-between">
             <span className="text-sm">Description</span>
-            <Plus className={`h-5 w-5 transition-transform ${descriptionOpen ? 'rotate-45' : ''}`} />
+            <Plus
+              className={`h-5 w-5 transition-transform ${descriptionOpen ? "rotate-45" : ""}`}
+            />
           </CollapsibleTrigger>
           <CollapsibleContent className="py-3">
-            <p className="text-sm text-gray-600 dark:text-gray-400">{product.description}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {product.description}
+            </p>
           </CollapsibleContent>
         </Collapsible>
 
         {/* Quantity Selector */}
         <div className="mt-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Quantity</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            Quantity
+          </p>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}

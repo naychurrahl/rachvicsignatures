@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, RefreshCw, ShoppingCart } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Switch } from '../ui/switch';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
-import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Switch } from '@/app/components/ui/switch';
+import { Label } from '@/app/components/ui/label';
+import { Input } from '@/app/components/ui/input';
+import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
 
 export function OwnerSettings() {

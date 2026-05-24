@@ -1,9 +1,14 @@
-import { useApp } from '../../contexts/AppContext';
-import { Badge } from '../ui/badge';
+import { useApp } from "@/app/contexts/AppContext";
+import { Badge } from "@/app/components/ui/badge";
 import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Order } from '../../data/mockData';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
+import { Order } from "@/app/data/mockData";
 
 export function Orders() {
   const { orders } = useApp();

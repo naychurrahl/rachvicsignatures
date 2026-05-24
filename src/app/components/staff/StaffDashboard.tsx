@@ -1,8 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from "@/app/contexts/AppContext";
 import { ArrowLeft, Package, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
 
 export function StaffDashboard() {
   const navigate = useNavigate();

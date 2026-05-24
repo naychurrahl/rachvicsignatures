@@ -1,10 +1,10 @@
-import { User, Settings, HelpCircle, LogOut, Moon, Sun } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
+import { User, Settings, HelpCircle, LogOut, Moon, Sun, LogIn } from 'lucide-react';
+import { useApp } from '@/app/contexts/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 export function Profile() {
-  const { setUserRole } = useApp();
+  const { setUserRole, logout, login, user, openModal } = useApp();
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(false);
 
@@ -50,11 +50,19 @@ export function Profile() {
           className="w-full flex items-center justify-between p-4 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
         >
           <div className="flex items-center gap-3">
-            {darkMode ? <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" /> : <Sun className="h-5 w-5 text-gray-600 dark:text-gray-400" />}
+            {darkMode ? (
+              <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            ) : (
+              <Sun className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            )}
             <span>Dark Mode</span>
           </div>
-          <div className={`w-12 h-6 rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'} relative`}>
-            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-7' : 'translate-x-1'}`} />
+          <div
+            className={`w-12 h-6 rounded-full transition-colors ${darkMode ? "bg-blue-600" : "bg-gray-300"} relative`}
+          >
+            <div
+              className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${darkMode ? "translate-x-7" : "translate-x-1"}`}
+            />
           </div>
         </button>
       </div>
@@ -78,10 +86,23 @@ export function Profile() {
         </div>
       </div>
 
-      <button className="w-full bg-white dark:bg-gray-900 rounded-lg border p-4 flex items-center gap-3 text-red-600 active:bg-gray-50 dark:active:bg-gray-800 transition-colors">
-        <LogOut className="h-5 w-5" />
-        <span>Log Out</span>
-      </button>
+      {user ? (
+        <button
+          onClick={() => logout()}
+          className="w-full bg-white dark:bg-gray-900 rounded-lg border p-4 flex items-center gap-3 text-red-600 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+          <span>Log Out</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => openModal('login')}
+          className="w-full bg-white dark:bg-gray-900 rounded-lg border p-4 flex items-center gap-3 text-green-600 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+        >
+          <LogIn className="h-5 w-5" />
+          <span>Log In</span>
+        </button>
+      )}
     </div>
   );
 }

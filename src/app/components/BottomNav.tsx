@@ -1,12 +1,12 @@
 import { Home, ShoppingCart, FileText, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from "@/app/contexts/AppContext";
 import { Badge } from './ui/badge';
 
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cart } = useApp();
+  const { cart, user } = useApp();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -40,15 +40,17 @@ export function BottomNav() {
           <span className="text-xs">Cart</span>
         </button>
 
-        <button
-          onClick={() => navigate('/orders')}
-          className={`flex flex-col items-center justify-center gap-1 ${
-            isActive('/orders') ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'
-          }`}
-        >
-          <FileText className="h-6 w-6" />
-          <span className="text-xs">Orders</span>
-        </button>
+        {user && (
+          <button
+            onClick={() => navigate('/orders')}
+            className={`flex flex-col items-center justify-center gap-1 ${
+              isActive('/orders') ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            <FileText className="h-6 w-6" />
+            <span className="text-xs">Orders</span>
+          </button>
+        )}
 
         <button
           onClick={() => navigate('/profile')}

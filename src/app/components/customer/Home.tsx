@@ -1,19 +1,24 @@
 import { useState } from "react";
 import { Search, ShoppingBag } from "lucide-react";
-import { mockProducts, categories, Product } from "../../data/mockData";
-import { useApp } from "../../contexts/AppContext";
+import { Product } from "@/app/data/interFaces";
+import { useApp } from "@/app/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
-import { Badge } from "../ui/badge";
-import { Input } from "../ui/input";
-import Header from "../Header";
-import logo from "../ui/logo.png";
+import { Badge } from "@/app/components/ui/badge";
+import { Input } from "@/app/components/ui/input";
+import Header from "@/app/components/Header";
+import logo from "@/app/components/ui/logo.png";
 
 export function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  
+  const { modalOpen, categories } = useApp();
+  console.log("modalOpen:", modalOpen);
 
-  const filteredProducts = mockProducts.filter((product) => {
+  const { openModal, products } = useApp();
+
+  const filteredProducts = products.filter((product: Product) => {
     const matchesCategory =
       selectedCategory === "All" || product.category.includes(selectedCategory);
     const matchesSearch = product.name
@@ -25,10 +30,10 @@ export function Home() {
   return (
     <>
       <div className="pb-20">
-      <Header
+        <Header
           logo={logo}
           companyName={"Rachvic Signatures"}
-      />
+        />
         {/* Search Bar */}
         <div className="sticky top-0 bg-white dark:bg-gray-950 z-10 p-4 border-b">
           <div className="relative">
@@ -37,16 +42,16 @@ export function Home() {
               type="text"
               placeholder="Search products..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: any) => setSearchQuery(e.target.value)}
               className="pl-10 h-12"
             />
           </div>
         </div>
-
+        
         {/* Category Chips */}
         <div className="px-4 py-3 overflow-x-auto">
           <div className="flex gap-2">
-            {categories.map((category) => (
+            {categories.map((category: string) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
@@ -64,11 +69,12 @@ export function Home() {
 
         {/* Product Grid */}
         <div className="px-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredProducts.map((product) => (
+          {filteredProducts.map((product: Product) => (
             <ProductCard
               key={product.id}
               product={product}
               onClick={() => navigate(`/product/${product.id}`)}
+              //onClick={() => openModal("login")}
             />
           ))}
         </div>

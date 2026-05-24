@@ -1,34 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, UserCog } from 'lucide-react';
-import { mockStaff, Staff } from '../../data/mockData';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Switch } from '../ui/switch';
+import { Staff } from "@/app/data/interFaces";
+import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
+import { Button } from "@/app/components/ui/button";
+import { Badge } from '@/app/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Switch } from '@/app/components/ui/switch';
 import { toast } from 'sonner';
+
+
+const addStaff = async (staff: Staff) => {
+  const add = await ApiRequest({
+    url: `${baseUrl}/user`,
+    method: "POST",
+    body: {...staff, active: 'active'},
+  });
+
+  return { add: add, staff: staff };
+};
 
 export function OwnerStaff() {
   const navigate = useNavigate();
   const [showDialog, setShowDialog] = useState(false);
+  const [staff, setStaff] = useState<Staff | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Staff>({
+    id: '',
     name: '',
     email: '',
     role: 'staff',
-    status: 'active'
+    active: 'active'
   });
 
   const handleEdit = (staff: Staff) => {
     setSelectedStaff(staff);
     setFormData({
+      id: staff.id,
       name: staff.name,
       email: staff.email,
       role: staff.role,
-      status: staff.status
+      active: staff.status
     });
     setShowDialog(true);
   };
@@ -39,15 +54,50 @@ export function OwnerStaff() {
       name: '',
       email: '',
       role: 'staff',
-      status: 'active'
+      active: 'active'
     });
     setShowDialog(true);
   };
 
-  const handleSave = () => {
-    toast.success(selectedStaff ? 'Staff member updated' : 'Staff member created');
-    setShowDialog(false);
+  const handleSave = async () => {
+
+    if (selectedStaff) {
+      
+      await updateStaff(formData);
+
+      //console.log(response);
+      toast.success(`${selectedStaff.name ?? selectedStaff.id} updated`);
+      setShowDialog(false);
+
+    } else {
+
+      await addStaff(formData);
+
+      toast.success('Staff member created');
+      setShowDialog(false);
+    }
+
+    //toast.success(selectedStaff ? 'Staff member updated' : 'Staff member created');
   };
+
+  const updateStaff = async (staff: Staff) => {
+    console.log({staff: staff});
+    const update = await ApiRequest({
+      url: `${baseUrl}/user`,
+      method: "PUT",
+      body: staff,
+    });
+
+    return { update: update, staff: staff };
+  };
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/product` })
+      .then((data: Staff) => {
+        setStaff(data as Staff[]);
+      })
+      .catch(console.error);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -69,7 +119,7 @@ export function OwnerStaff() {
 
       <div className="p-4">
         <div className="space-y-3">
-          {mockStaff.map(staff => (
+          {staff.map(staff => (
             <div
               key={staff.id}
               onClick={() => handleEdit(staff)}
@@ -130,17 +180,17 @@ export function OwnerStaff() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {selectedStaff && (
               <div className="flex items-center justify-between">
-                <Label htmlFor="status">Active Status</Label>
+                <Label htmlFor="active">Active Status</Label>
                 <Switch
-                  id="status"
-                  checked={formData.status === 'active'}
-                  onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'active' : 'inactive' })}
+                  id="active"
+                  checked={formData.active === 'active'}
+                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked ? 'active' : 'inactive' })}
                 />
               </div>
             )}

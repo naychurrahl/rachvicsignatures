@@ -1,7 +1,7 @@
 import { Plus, Minus, Trash2 } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from "@/app/contexts/AppContext";
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../ui/button';
+import { Button } from "@/app/components/ui/button";
 import { motion, AnimatePresence } from 'motion/react';
 
 export function Cart() {

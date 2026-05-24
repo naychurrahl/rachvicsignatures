@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+import { useApp } from "@/app/contexts/AppContext";
+import { Button } from '@/app/components/ui/button';
+import { Badge } from '@/app/components/ui/badge';
 
 export function OrderConfirmation() {
   const { orderId } = useParams();

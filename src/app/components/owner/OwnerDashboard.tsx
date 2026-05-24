@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from "@/app/contexts/AppContext";
 import { ArrowLeft, DollarSign, ShoppingBag, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 const chartData = [

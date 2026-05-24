@@ -1,40 +1,84 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Order } from '../../data/mockData';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, ChevronRight } from "lucide-react";
+import { useApp } from "@/app/contexts/AppContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Badge } from "@/app/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Button } from "@/app/components/ui/button";
+import {
+  Order,
+  OrderInterface,
+} from "@/app/data/mockData";
+import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
+import { toast } from "sonner";
 
 export function StaffOrders() {
   const navigate = useNavigate();
   const { orders, updateOrderStatus } = useApp();
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderInterface | null>(
+    null,
+  );
 
-  const newOrders = orders.filter(o => o.status === 'new');
-  const inProgressOrders = orders.filter(o => o.status === 'in-progress');
-  const completedOrders = orders.filter(o => o.status === 'completed');
+  const newOrders = orders.filter((o) => o.status === "new");
+  const inProgressOrders = orders.filter((o) => o.status === "in-progress");
+  const completedOrders = orders.filter((o) => o.status === "completed");
 
-  const handleAccept = (orderId: string) => {
-    updateOrderStatus(orderId, 'in-progress');
-    toast.success('Order accepted');
-    setSelectedOrder(null);
+  const handleAccept = async (orderId: string) => {
+    try {
+      const formData = {
+        id: orderId,
+        status: "in-progress",
+      };
+      const response = await updateOrder(formData);
+
+      console.log(response);
+
+      updateOrderStatus(orderId, "in-progress");
+      toast.success("Order accepted");
+      setSelectedOrder(null);
+    } catch (error) {
+      toast.error("Failed to accept order");
+    }
   };
 
-  const handleComplete = (orderId: string) => {
-    updateOrderStatus(orderId, 'completed');
-    toast.success('Order marked as completed');
-    setSelectedOrder(null);
+  const handleComplete = async (orderId: string) => {
+    try {
+      const formData = {
+        id: orderId,
+        status: "completed",
+      };
+      const response = await updateOrder(formData);
+
+      console.log(response);
+
+      updateOrderStatus(orderId, "completed");
+      toast.success("Order marked as completed");
+      setSelectedOrder(null);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to mark order as completed");
+    }
+  };
+
+  const updateOrder = async (order: OrderInterface) => {
+    const update = await ApiRequest({
+      url: `${baseUrl}/orders`,
+      method: "PUT",
+      body: order,
+    });
+
+    return { update: update, product: update };
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3 flex items-center">
-        <button onClick={() => navigate('/staff/dashboard')} className="p-2 -ml-2 active:scale-90 transition-transform">
+        <button
+          onClick={() => navigate("/staff/dashboard")}
+          className="p-2 -ml-2 active:scale-90 transition-transform"
+        >
           <ArrowLeft className="h-6 w-6" />
         </button>
         <h1 className="text-lg ml-2">Order Management</h1>
@@ -44,8 +88,12 @@ export function StaffOrders() {
         <Tabs defaultValue="new" className="w-full">
           <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="new">New ({newOrders.length})</TabsTrigger>
-            <TabsTrigger value="in-progress">In Progress ({inProgressOrders.length})</TabsTrigger>
-            <TabsTrigger value="completed">Completed ({completedOrders.length})</TabsTrigger>
+            <TabsTrigger value="in-progress">
+              In Progress ({inProgressOrders.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed">
+              Completed ({completedOrders.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="new" className="mt-4">
@@ -62,7 +110,10 @@ export function StaffOrders() {
         </Tabs>
       </div>
 
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+      <Dialog
+        open={!!selectedOrder}
+        onOpenChange={() => setSelectedOrder(null)}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Order #{selectedOrder?.id}</DialogTitle>
@@ -75,40 +126,56 @@ export function StaffOrders() {
               </div>
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-1">Status</p>
-                <Badge>{selectedOrder.status.replace('-', ' ')}</Badge>
+                <Badge>{selectedOrder.status.replace("-", " ")}</Badge>
               </div>
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-2">Items</p>
-                {selectedOrder.items.map(item => (
-                  <div key={item.id} className="flex justify-between text-sm mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                {selectedOrder.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex justify-between text-sm mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                  >
                     <div>
                       <p>{item.name}</p>
-                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                      <p className="text-xs text-gray-500">
+                        Qty: {item.quantity}
+                      </p>
                     </div>
                     <span>${(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
-              {selectedOrder.deliveryMethod === 'delivery' && selectedOrder.address && (
-                <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-1">Delivery Address</p>
-                  <p className="text-sm">{selectedOrder.address}</p>
-                </div>
-              )}
+              {selectedOrder.deliveryMethod === "delivery" &&
+                selectedOrder.address && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-500 mb-1">
+                      Delivery Address
+                    </p>
+                    <p className="text-sm">{selectedOrder.address}</p>
+                  </div>
+                )}
               <div className="border-t pt-3 mb-4">
                 <div className="flex justify-between">
                   <span>Total</span>
-                  <span className="text-lg">${selectedOrder.total.toFixed(2)}</span>
+                  <span className="text-lg">
+                    ${selectedOrder.total.toFixed(2)}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-2">
-                {selectedOrder.status === 'new' && (
-                  <Button onClick={() => handleAccept(selectedOrder.id)} className="flex-1">
+                {selectedOrder.status === "new" && (
+                  <Button
+                    onClick={() => handleAccept(selectedOrder.id)}
+                    className="flex-1"
+                  >
                     Accept Order
                   </Button>
                 )}
-                {selectedOrder.status === 'in-progress' && (
-                  <Button onClick={() => handleComplete(selectedOrder.id)} className="flex-1">
+                {selectedOrder.status === "in-progress" && (
+                  <Button
+                    onClick={() => handleComplete(selectedOrder.id)}
+                    className="flex-1"
+                  >
                     Mark as Completed
                   </Button>
                 )}
@@ -121,7 +188,13 @@ export function StaffOrders() {
   );
 }
 
-function OrderList({ orders, onSelect }: { orders: Order[]; onSelect: (order: Order) => void }) {
+function OrderList({
+  orders,
+  onSelect,
+}: {
+  orders: Order[];
+  onSelect: (order: Order) => void;
+}) {
   if (orders.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
@@ -132,7 +205,7 @@ function OrderList({ orders, onSelect }: { orders: Order[]; onSelect: (order: Or
 
   return (
     <div className="space-y-3">
-      {orders.map(order => (
+      {orders.map((order) => (
         <div
           key={order.id}
           onClick={() => onSelect(order)}
@@ -148,11 +221,15 @@ function OrderList({ orders, onSelect }: { orders: Order[]; onSelect: (order: Or
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                {order.items.length} item{order.items.length > 1 ? "s" : ""}
               </p>
               <p className="text-lg">${order.total.toFixed(2)}</p>
             </div>
-            <Badge variant={order.deliveryMethod === 'delivery' ? 'default' : 'secondary'}>
+            <Badge
+              variant={
+                order.deliveryMethod === "delivery" ? "default" : "secondary"
+              }
+            >
               {order.deliveryMethod}
             </Badge>
           </div>
