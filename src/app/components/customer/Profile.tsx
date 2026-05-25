@@ -27,8 +27,10 @@ export function Profile() {
             <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h2 className="text-lg">John Doe</h2>
-            <p className="text-sm text-gray-500">john@example.com</p>
+            <h2 className="text-lg">{user ? user.name : "John Doe"}</h2>
+            <p className="text-sm text-gray-500">
+              {user?.email ?? "john@example.com"}
+            </p>
           </div>
         </div>
       </div>
@@ -68,23 +70,33 @@ export function Profile() {
       </div>
 
       {/* Demo Role Switcher */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg border p-4 mb-4">
-        <p className="text-sm text-gray-500 mb-3">Demo: Switch Role</p>
-        <div className="flex gap-2">
-          <button
-            onClick={handleSwitchToStaff}
-            className="flex-1 py-2 px-4 bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-lg active:scale-95 transition-transform text-sm"
-          >
-            Staff Login
-          </button>
-          <button
-            onClick={handleSwitchToOwner}
-            className="flex-1 py-2 px-4 bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-lg active:scale-95 transition-transform text-sm"
-          >
-            Owner Login
-          </button>
+      {(user?.role === "admin" || user?.role === "staff") && (
+        <div className="bg-white dark:bg-gray-900 rounded-lg border p-4 mb-4">
+          {/*<p className="text-sm text-gray-500 mb-3">Demo: Switch Role</p>*/}
+          <div className="flex gap-2">
+            {user?.role === "admin" || user?.role === "staff" ? (
+              <button
+                onClick={handleSwitchToStaff}
+                className="flex-1 py-2 px-4 bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-lg active:scale-95 transition-transform text-sm"
+              >
+                Staff Login
+              </button>
+            ) : (
+              ""
+            )}
+            {user?.role === "admin" ? (
+              <button
+                onClick={handleSwitchToOwner}
+                className="flex-1 py-2 px-4 bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-lg active:scale-95 transition-transform text-sm"
+              >
+                Owner Login
+              </button>
+            ) : (
+              ""
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {user ? (
         <button
@@ -96,7 +108,7 @@ export function Profile() {
         </button>
       ) : (
         <button
-          onClick={() => openModal('login')}
+          onClick={() => openModal("login")}
           className="w-full bg-white dark:bg-gray-900 rounded-lg border p-4 flex items-center gap-3 text-green-600 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
         >
           <LogIn className="h-5 w-5" />

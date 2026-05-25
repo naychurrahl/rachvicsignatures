@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
+
+import { useNavigate } from "react-router-dom";
+
 import { useApp } from "@/app/contexts/AppContext";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 
 export default function AuthModal() {
   const { modalOpen, modalScreen, closeModal, login } = useApp();
+
+  const navigate = useNavigate();
+
   const [screen, setScreen] = useState(modalScreen);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -140,7 +146,14 @@ export default function AuthModal() {
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
-            <div className="text-right mt-3">
+            <div className="flex text-right justify-between mt-3 gap-2 w-full">
+              <button
+                type="button"
+                onClick={() => closeModal(true) }
+                className="text-sm text-red-600 underline"
+              >
+                Guest?
+              </button>
               <button
                 type="button"
                 onClick={() => setScreen("forgot")}

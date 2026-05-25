@@ -3,7 +3,7 @@ import { useApp } from "@/app/contexts/AppContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ("customer" | "staff" | "owner")[];
+  allowedRoles?: ("customer" | "staff" | "admin")[];
 }
 
 export function ProtectedRoute({
@@ -14,7 +14,8 @@ export function ProtectedRoute({
 
   if (!user) {
     openModal("login");
-    return <Navigate to="/" replace />;
+    return;
+    //return <Navigate to="/" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

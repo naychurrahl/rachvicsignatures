@@ -1,7 +1,7 @@
 import { Home, ShoppingCart, FileText, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from "@/app/contexts/AppContext";
-import { Badge } from './ui/badge';
+import { Badge } from "@/app/components/ui/badge";
 
 export function BottomNav() {
   const location = useLocation();
@@ -12,11 +12,11 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t z-50 safe-bottom">
-      <div className="grid grid-cols-4 h-16">
+      <div className="flex items-center justify-evenly h-16">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className={`flex flex-col items-center justify-center gap-1 ${
-            isActive('/') ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'
+            isActive("/") ? "text-blue-600" : "text-gray-600 dark:text-gray-400"
           }`}
         >
           <Home className="h-6 w-6" />
@@ -24,9 +24,11 @@ export function BottomNav() {
         </button>
 
         <button
-          onClick={() => navigate('/cart')}
+          onClick={() => navigate("/cart")}
           className={`flex flex-col items-center justify-center gap-1 relative ${
-            isActive('/cart') ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'
+            isActive("/cart")
+              ? "text-blue-600"
+              : "text-gray-600 dark:text-gray-400"
           }`}
         >
           <div className="relative">
@@ -42,9 +44,11 @@ export function BottomNav() {
 
         {user && (
           <button
-            onClick={() => navigate('/orders')}
+            onClick={() => navigate("/orders")}
             className={`flex flex-col items-center justify-center gap-1 ${
-              isActive('/orders') ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'
+              isActive("/orders")
+                ? "text-blue-600"
+                : "text-gray-600 dark:text-gray-400"
             }`}
           >
             <FileText className="h-6 w-6" />
@@ -53,9 +57,11 @@ export function BottomNav() {
         )}
 
         <button
-          onClick={() => navigate('/profile')}
+          onClick={() => navigate("/profile")}
           className={`flex flex-col items-center justify-center gap-1 ${
-            isActive('/profile') ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'
+            isActive("/profile")
+              ? "text-blue-600"
+              : "text-gray-600 dark:text-gray-400"
           }`}
         >
           <User className="h-6 w-6" />

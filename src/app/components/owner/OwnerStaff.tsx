@@ -1,40 +1,55 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, UserCog } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Plus, UserCog } from "lucide-react";
 import { Staff } from "@/app/data/interFaces";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 import { Button } from "@/app/components/ui/button";
-import { Badge } from '@/app/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Switch } from '@/app/components/ui/switch';
-import { toast } from 'sonner';
-
-
-const addStaff = async (staff: Staff) => {
-  const add = await ApiRequest({
-    url: `${baseUrl}/user`,
-    method: "POST",
-    body: {...staff, active: 'active'},
-  });
-
-  return { add: add, staff: staff };
-};
+import { Badge } from "@/app/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import { Switch } from "@/app/components/ui/switch";
+import { toast } from "sonner";
+import { useApp } from "@/app/contexts/AppContext";
 
 export function OwnerStaff() {
   const navigate = useNavigate();
   const [showDialog, setShowDialog] = useState(false);
-  const [staff, setStaff] = useState<Staff | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [formData, setFormData] = useState<Staff>({
-    id: '',
-    name: '',
-    email: '',
-    role: 'staff',
-    active: 'active'
+    id: "",
+    name: "",
+    email: "",
+    role: "staff",
+    active: "active",
   });
+
+  const { staff, loadStaff, setloadStaff } = useApp();
+  
+  console.log({ staffs: staff, load: loadStaff });
+  if(!staff) setloadStaff(!loadStaff);
+
+  const addStaff = async (staff: Staff) => {
+    const add = await ApiRequest({
+      url: `${baseUrl}/user`,
+      method: "POST",
+      body: { ...staff, active: "active" },
+    });
+
+    return { add: add, staff: staff };
+  };
 
   const handleEdit = (staff: Staff) => {
     setSelectedStaff(staff);
@@ -43,7 +58,7 @@ export function OwnerStaff() {
       name: staff.name,
       email: staff.email,
       role: staff.role,
-      active: staff.status
+      active: staff.status,
     });
     setShowDialog(true);
   };
@@ -51,29 +66,25 @@ export function OwnerStaff() {
   const handleCreate = () => {
     setSelectedStaff(null);
     setFormData({
-      name: '',
-      email: '',
-      role: 'staff',
-      active: 'active'
+      name: "",
+      email: "",
+      role: "staff",
+      active: "active",
     });
     setShowDialog(true);
   };
 
   const handleSave = async () => {
-
     if (selectedStaff) {
-      
       await updateStaff(formData);
 
       //console.log(response);
       toast.success(`${selectedStaff.name ?? selectedStaff.id} updated`);
       setShowDialog(false);
-
     } else {
-
       await addStaff(formData);
 
-      toast.success('Staff member created');
+      toast.success("Staff member created");
       setShowDialog(false);
     }
 
@@ -81,7 +92,7 @@ export function OwnerStaff() {
   };
 
   const updateStaff = async (staff: Staff) => {
-    console.log({staff: staff});
+    console.log({ staff: staff });
     const update = await ApiRequest({
       url: `${baseUrl}/user`,
       method: "PUT",
@@ -91,21 +102,16 @@ export function OwnerStaff() {
     return { update: update, staff: staff };
   };
 
-  useEffect(() => {
-    ApiRequest({ url: `${baseUrl}/product` })
-      .then((data: Staff) => {
-        setStaff(data as Staff[]);
-      })
-      .catch(console.error);
-  }, []);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
-            <button onClick={() => navigate('/owner/dashboard')} className="p-2 -ml-2 active:scale-90 transition-transform">
+            <button
+              onClick={() => navigate("/owner/dashboard")}
+              className="p-2 -ml-2 active:scale-90 transition-transform"
+            >
               <ArrowLeft className="h-6 w-6" />
             </button>
             <h1 className="text-lg ml-2">Staff Management</h1>
@@ -119,7 +125,7 @@ export function OwnerStaff() {
 
       <div className="p-4">
         <div className="space-y-3">
-          {staff.map(staff => (
+          {staff.map((staff: Staff) => (
             <div
               key={staff.id}
               onClick={() => handleEdit(staff)}
@@ -134,8 +140,15 @@ export function OwnerStaff() {
                     <h3 className="text-sm mb-1">{staff.name}</h3>
                     <p className="text-xs text-gray-500 mb-2">{staff.email}</p>
                     <div className="flex gap-2">
-                      <Badge variant="secondary" className="text-xs">{staff.role}</Badge>
-                      <Badge variant={staff.status === 'active' ? 'default' : 'destructive'} className="text-xs">
+                      <Badge variant="secondary" className="text-xs">
+                        {staff.role}
+                      </Badge>
+                      <Badge
+                        variant={
+                          staff.status === "active" ? "default" : "destructive"
+                        }
+                        className="text-xs"
+                      >
                         {staff.status}
                       </Badge>
                     </div>
@@ -150,7 +163,9 @@ export function OwnerStaff() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedStaff ? 'Edit Staff Member' : 'Add Staff Member'}</DialogTitle>
+            <DialogTitle>
+              {selectedStaff ? "Edit Staff Member" : "Add Staff Member"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -158,7 +173,9 @@ export function OwnerStaff() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e: any) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
@@ -168,13 +185,20 @@ export function OwnerStaff() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e: any) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="mt-1"
               />
             </div>
             <div>
               <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(v) => setFormData({ ...formData, role: v })}>
+              <Select
+                value={formData.role}
+                onValueChange={(v: any) =>
+                  setFormData({ ...formData, role: v })
+                }
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -189,13 +213,18 @@ export function OwnerStaff() {
                 <Label htmlFor="active">Active Status</Label>
                 <Switch
                   id="active"
-                  checked={formData.active === 'active'}
-                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked ? 'active' : 'inactive' })}
+                  checked={formData.active === "active"}
+                  onCheckedChange={(checked: Boolean) =>
+                    setFormData({
+                      ...formData,
+                      active: checked ? "active" : "inactive",
+                    })
+                  }
                 />
               </div>
             )}
             <Button onClick={handleSave} className="w-full">
-              {selectedStaff ? 'Update Staff' : 'Create Staff'}
+              {selectedStaff ? "Update Staff" : "Create Staff"}
             </Button>
           </div>
         </DialogContent>

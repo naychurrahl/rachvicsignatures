@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Search, ShoppingBag } from "lucide-react";
 import { Product } from "@/app/data/interFaces";
 import { useApp } from "@/app/contexts/AppContext";
+
 import { useNavigate } from "react-router-dom";
+
 import { Badge } from "@/app/components/ui/badge";
 import { Input } from "@/app/components/ui/input";
 import Header from "@/app/components/Header";
@@ -11,12 +13,13 @@ import logo from "@/app/components/ui/logo.png";
 export function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  
   const navigate = useNavigate();
   
   const { modalOpen, categories } = useApp();
   console.log("modalOpen:", modalOpen);
 
-  const { openModal, products } = useApp();
+  const {  products } = useApp();
 
   const filteredProducts = products.filter((product: Product) => {
     const matchesCategory =

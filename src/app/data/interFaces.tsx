@@ -1,3 +1,8 @@
+
+export type ModalScreen = "login" | "register" | "forgot" | "reset-sent";
+
+export type Role = "admin" | "staff" | "customer";
+
 export interface Product {
   id: string;
   name: string;
@@ -15,6 +20,7 @@ export interface CartItem extends Product {
 export interface OrderInterface {
   id: string;
   date: string;
+  user: string;
   total: number;
   status: "new" | "in-progress" | "completed";
   items: CartItem[];
@@ -36,4 +42,11 @@ export interface apiData {
   method?: "GET" | "POST" | "OPTIONS" | "PUT" | "DELETE";
   body?: any;
   headers?: object;
+}
+
+export interface User {
+  userId: number;
+  name: string;
+  email: string;
+  role: Role;
 }

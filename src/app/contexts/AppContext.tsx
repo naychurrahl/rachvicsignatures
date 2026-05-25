@@ -5,7 +5,17 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { CartItem, OrderInterface, Product } from "@/app/data/interFaces";
+
+import { useNavigate } from "react-router-dom";
+
+import {
+  CartItem,
+  OrderInterface,
+  Product,
+  Staff,
+  User,
+  ModalScreen,
+} from "@/app/data/interFaces";
 
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 
@@ -13,16 +23,7 @@ import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
   url: `${baseUrl}/cart`,
 }); */
 
-type ModalScreen = "login" | "register" | "forgot" | "reset-sent";
 
-type Role = "admin" | "staff" | "customer";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: Role;
-}
 
 interface AppContextType {
   cart: CartItem[];
@@ -50,6 +51,8 @@ interface AppContextType {
   setProducts: (product: Product[]) => void;
   categories: String[];
   setCategories: (categories: string[]) => void;
+  staff: Staff[];
+  setStaff: (staff: Staff[]) => void;
   loadCart: Boolean;
   setLoadCart: (data: Boolean) => void;
   loadProduct: Boolean;
@@ -58,6 +61,8 @@ interface AppContextType {
   setloadOrder: (data: Boolean) => void;
   loadAuth: Boolean;
   setloadAuth: (data: Boolean) => void;
+  loadStaff: Boolean;
+  setloadStaff: (data: Boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -66,6 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Product[]>([]);
+  const [staff, setStaff] = useState<Staff | null>(null);
   const [orders, setOrders] = useState<OrderInterface[]>([]);
   const [userRole, setUserRole] = useState<
     "customer" | "staff" | "admin" | null
@@ -75,40 +81,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loadProduct, setLoadProduct] = useState<Boolean>(false);
   const [loadOrder, setloadOrder] = useState<Boolean>(false);
   const [loadAuth, setloadAuth] = useState<Boolean>(false);
+  const [loadStaff, setloadStaff] = useState<Boolean>(false);
   
   // auth state
   const [user, setUser] = useState<User | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalScreen, setModalScreen] = useState<ModalScreen>("login");
 
-  // fetch on mount instead
-  useEffect(() => {
-    if (user)
-      ApiRequest({ url: `${baseUrl}/cart` })
-        .then((data: any) => setCart(data as CartItem[]))
-        .catch(console.error);
-  }, [loadCart]);
+  const navigate = useNavigate();
 
-  // fetch on mount instead
-  useEffect(() => {
-    if (user)
-      ApiRequest({ url: `${baseUrl}/orders` })
-        .then((data: any) => setOrders(data as OrderInterface[]))
-        .catch(console.error);
-  }, [loadOrder]);
-
-  useEffect(() => {
-    ApiRequest({ url: `${baseUrl}/product` })
-      .then((data: { products: Product[]; categories: String[] }) => {
-        setProducts(data.products as Product[]);
-        setCategories(data.categories as String[]);
-      })
-      .catch(console.error);
-  }, [loadProduct]);
   
   useEffect(() => {
     ApiRequest({ url: `${baseUrl}/ping` })
-    .then(
+      .then(
         (data: {
           status: "in" | "out";
           timestamp: String;
@@ -124,6 +109,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
       .catch(console.error);
   }, [loadAuth]);
+
+  // fetch on mount instead
+  useEffect(() => {
+    if (user)
+      ApiRequest({ url: `${baseUrl}/cart` })
+        .then((data: any) => setCart(data as CartItem[]))
+        .catch(console.error);
+  }, [loadCart]);
+
+  // fetch on mount instead
+  useEffect(() => {
+    if (user)
+      ApiRequest({ url: `${baseUrl}/orders` })
+        .then((data: any) => {
+          setOrders(data as OrderInterface[]);
+        })
+        .catch(console.error);
+  }, [loadOrder]);
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/product` })
+      .then((data: { products: Product[]; categories: String[] }) => {
+        setProducts(data.products as Product[]);
+        setCategories(data.categories as String[]);
+      })
+      .catch(console.error);
+  }, [loadProduct]);
+
+  useEffect(() => {
+    if(userRole === 'admin')
+      console.log('here at staff ln AppContext:140');
+      ApiRequest({ url: `${baseUrl}/user` })
+      .then((data: Staff) => {
+        setStaff(data as Staff[]);
+      })
+      .catch(console.error);
+  }, [loadStaff]);
 
   const createOrder = async (order: OrderInterface) => {
     const update = await ApiRequest({
@@ -193,16 +215,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setModalOpen(true);
   };
 
-  const closeModal = () => {
+  const closeModal = (red: Boolean = false) => {
     setModalOpen(false);
+    if (red === true) navigate('/');
   };
 
   const login = (userData: User) => {
     setUser(userData);
     setLoadCart(!loadCart);
     setloadOrder(!loadOrder);
+    setloadStaff(!loadStaff);
     
     closeModal();
+    window.location.reload();
     //console.log({data: userData});
   };
 
@@ -215,6 +240,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setCart([]);
     setOrders([]);
+    setStaff([]);
     setUserRole('customer');
     console.log('out');
   };
@@ -262,6 +288,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setloadOrder,
         loadAuth,
         setloadAuth,
+        staff,
+        setStaff,
+        loadStaff,
+        setloadStaff,
       }}
     >
       {children}

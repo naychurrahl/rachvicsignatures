@@ -45,40 +45,79 @@ function AppRoutes() {
         />
         <Route
           path="/order-confirmation/:orderId"
-          element={<OrderConfirmation />}
+          element={
+            <ProtectedRoute>
+              <OrderConfirmation />
+            </ProtectedRoute>
+          }
         />
-        <Route path="/orders" element={<Orders />} />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <Orders />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/profile" element={<Profile />} />
 
         {/* Staff Routes */}
-        <Route path="/staff/dashboard" element={<StaffDashboard />} />
-        <Route path="/staff/orders" element={<StaffOrders />} />
-        <Route path="/staff/products" element={<StaffProducts />} />
+        <Route
+          path="/staff/dashboard"
+          element={
+            <ProtectedRoute>
+              <StaffDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/staff/orders" element={
+            <ProtectedRoute>
+              <StaffOrders />
+            </ProtectedRoute>
+        } />
+        <Route path="/staff/products" element={
+            <ProtectedRoute>
+              <StaffProducts />
+            </ProtectedRoute>
+        } />
 
         {/* Owner Routes */}
-        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-        <Route path="/owner/staff" element={<OwnerStaff />} />
-        <Route path="/owner/settings" element={<OwnerSettings />} />
+        <Route path="/owner/dashboard" element={
+            <ProtectedRoute>
+<OwnerDashboard />
+            </ProtectedRoute>
+        } />
+        <Route path="/owner/staff" element={
+            <ProtectedRoute>
+<OwnerStaff />
+            </ProtectedRoute>
+        } />
+        <Route path="/owner/settings" element={
+            <ProtectedRoute>
+<OwnerSettings />
+            </ProtectedRoute>
+        } />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       {/* Show bottom nav only for customer role and on specific routes */}
-      {userRole === "customer" && <BottomNav />}
+      {/*userRole === "customer" && <BottomNav />*/}
+      <BottomNav />
     </>
   );
 }
 
 export default function App() {
   return (
+    <BrowserRouter>
     <AppProvider>
-      <BrowserRouter>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
           <AppRoutes />
           <Toaster />
         </div>
-      </BrowserRouter>
       <AuthModal />
     </AppProvider>
+      </BrowserRouter>
   );
 }
