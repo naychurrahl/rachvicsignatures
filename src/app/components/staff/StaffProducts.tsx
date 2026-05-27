@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Package, Plus } from "lucide-react";
 import { Product } from "@/app/data/interFaces";
@@ -19,10 +19,9 @@ import { useApp } from "@/app/contexts/AppContext";
 export function StaffProducts() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  //const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [stockValue, setStockValue] = useState("");
-
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [formData, setFormData] = useState<Product>({
     id: "",
@@ -34,30 +33,57 @@ export function StaffProducts() {
     description: "",
   });
 
-  const { products } = useApp();
+  const { products, setLoadProduct } = useApp();
+
+  const buildFormData = (product: Product) => {
+    const fd = new FormData();
+    fd.append("id", product.id);
+    fd.append("name", product.name);
+    fd.append("price", product.price.toString());
+    fd.append("stock", product.stock.toString());
+    fd.append("category", product.category.join(", "));
+    fd.append("description", product.description);
+    if (imageFile) fd.append("image", imageFile);
+    return fd;
+  };
 
   const addProduct = async (product: Product) => {
-    const add = await ApiRequest({
-      url: `${baseUrl}/product`,
-      method: "POST",
-      body: product,
-    });
-
-    return ({ add: add, product: product });
+    setIsProcessing(true);
+    try {
+      return await ApiRequest({
+        url: `${baseUrl}/product`,
+        method: "POST",
+        body: buildFormData(product),
+      });
+    } catch (error) {
+      toast.error("Error adding product");
+      console.error("Error adding product:", error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const updateProduct = async (product: Product) => {
-    const update = await ApiRequest({
-      url: `${baseUrl}/product`,
-      method: "PUT",
-      body: product,
-    });
-
-    return ({ update: update, product: product });
+    setIsProcessing(true);
+    try {
+      return await ApiRequest({
+        url: `${baseUrl}/product`,
+        method: "PUT",
+        body: buildFormData(product),
+      });
+    } catch (error) {
+      toast.error("Error updating product");
+      console.error("Error updating product:", error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
+    setImageFile(null);
     setFormData({
       id: product.id,
       name: product.name,
@@ -72,6 +98,7 @@ export function StaffProducts() {
 
   const handleCreate = () => {
     setSelectedProduct(null);
+    setImageFile(null);
     setFormData({
       id: "",
       name: "",
@@ -85,51 +112,29 @@ export function StaffProducts() {
   };
 
   const handleSave = async () => {
-    if (selectedProduct) {
-      //const put = await ApiRequest({
-      /* const put = await ApiRequest({
-        url: `${baseUrl}/product`,
-        method: "PUT",
-        body: formData
-      });
-
-      console.log({"put": put, product: formData}); */
-
-      const response = await updateProduct(formData);
-
-      console.log(response);
-
-    } else {
-      /* const add = await ApiRequest({
-        url: `${baseUrl}/product`,
-        method: "POST",
-        body: formData,
-      });
-
-      console.log({ add: add, product: formData }); */
-
-      const response = await addProduct(formData);
-
-      console.log(response);
+    try {
+      if (selectedProduct) {
+        await updateProduct(formData);
+      } else {
+        await addProduct(formData);
+      }
+      toast.success(
+        selectedProduct
+          ? `${selectedProduct.name} updated`
+          : `${formData.name} created`,
+      );
+      setLoadProduct((prev: boolean) => !prev);
+      setImageFile(null);
+      setShowDialog(false);
+    } catch {
+      // already toasted inside addProduct/updateProduct
     }
-    toast.success(
-      selectedProduct
-        ? `${selectedProduct.name} updated`
-        : `${formData.name} created`,
-    );
-    setShowDialog(false);
   };
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleUpdateStock = () => {
-    toast.success(`Stock updated for ${selectedProduct.name}`);
-    setSelectedProduct(null);
-    setStockValue("");
-  };
-  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
@@ -166,9 +171,7 @@ export function StaffProducts() {
           {filteredProducts.map((product) => (
             <div
               key={product.id}
-              onClick={() => {
-                handleEdit(product);
-              }}
+              onClick={() => handleEdit(product)}
               className="bg-white dark:bg-gray-900 rounded-lg border p-4 active:scale-98 transition-transform cursor-pointer"
             >
               <div className="flex gap-3">
@@ -237,14 +240,32 @@ export function StaffProducts() {
             </div>
             <div>
               <Label htmlFor="image">Image</Label>
-              <Input
+              <input
                 id="image"
-                value={formData.image}
-                onChange={(e) =>
-                  setFormData({ ...formData, image: e.target.value })
-                }
-                className="mt-1"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setImageFile(file);
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setFormData({
+                      ...formData,
+                      image: reader.result as string,
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                className="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-800 dark:file:text-gray-300"
               />
+              {formData.image && (
+                <img
+                  src={formData.image}
+                  alt="Preview"
+                  className="mt-2 w-full h-40 object-cover rounded-lg border"
+                />
+              )}
             </div>
             <div>
               <Label htmlFor="stock">Stock</Label>
@@ -253,10 +274,7 @@ export function StaffProducts() {
                 type="number"
                 value={formData.stock}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    stock: parseInt(e.target.value),
-                  })
+                  setFormData({ ...formData, stock: parseInt(e.target.value) })
                 }
                 className="mt-1"
               />
@@ -286,47 +304,22 @@ export function StaffProducts() {
                 className="mt-1"
               />
             </div>
-            <Button onClick={handleSave} className="w-full">
-              {selectedProduct ? "Update Product" : "Create Product"}
+            <Button
+              onClick={handleSave}
+              disabled={isProcessing}
+              className="w-full"
+            >
+              {isProcessing
+                ? selectedProduct
+                  ? "Updating..."
+                  : "Creating..."
+                : selectedProduct
+                  ? "Update Product"
+                  : "Create Product"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* <Dialog
-        open={!!selectedProduct}
-        onOpenChange={() => setSelectedProduct(null)}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Update Stock</DialogTitle>
-          </DialogHeader>
-          {selectedProduct && (
-            <div>
-              <div className="mb-4">
-                <p className="text-sm mb-2">{selectedProduct.name}</p>
-                <p className="text-xs text-gray-500">
-                  Current Stock: {selectedProduct.stock}
-                </p>
-              </div>
-              <div className="mb-4">
-                <Label htmlFor="stock">New Stock Level</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  value={stockValue}
-                  onChange={(e) => setStockValue(e.target.value)}
-                  className="mt-1"
-                  min="0"
-                />
-              </div>
-              <Button onClick={handleUpdateStock} className="w-full">
-                Update Stock
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog> */}
     </div>
   );
 }

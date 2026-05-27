@@ -53,16 +53,17 @@ interface AppContextType {
   setCategories: (categories: string[]) => void;
   staff: Staff[];
   setStaff: (staff: Staff[]) => void;
-  loadCart: Boolean;
-  setLoadCart: (data: Boolean) => void;
-  loadProduct: Boolean;
-  setLoadProduct: (data: Boolean) => void;
-  loadOrder: Boolean;
-  setloadOrder: (data: Boolean) => void;
-  loadAuth: Boolean;
-  setloadAuth: (data: Boolean) => void;
-  loadStaff: Boolean;
-  setloadStaff: (data: Boolean) => void;
+  loadCart: boolean;
+  setLoadCart: (data: boolean) => void;
+  loadProduct: boolean;
+  setLoadProduct: (data: boolean) => void;
+  loadOrder: boolean;
+  setloadOrder: (data: boolean) => void;
+  loadAuth: boolean;
+  setloadAuth: (data: boolean) => void;
+  loadStaff: boolean;
+  setloadStaff: (data: boolean) => void;
+  authReady: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -77,14 +78,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     "customer" | "staff" | "admin" | null
   >("customer");
 
-  const [loadCart, setLoadCart] = useState<Boolean>(false);
-  const [loadProduct, setLoadProduct] = useState<Boolean>(false);
-  const [loadOrder, setloadOrder] = useState<Boolean>(false);
-  const [loadAuth, setloadAuth] = useState<Boolean>(false);
-  const [loadStaff, setloadStaff] = useState<Boolean>(false);
+  const [loadCart, setLoadCart] = useState<boolean>(false);
+  const [loadProduct, setLoadProduct] = useState<boolean>(false);
+  const [loadOrder, setloadOrder] = useState<boolean>(false);
+  const [loadAuth, setloadAuth] = useState<boolean>(false);
+  const [loadStaff, setloadStaff] = useState<boolean>(false);
   
   // auth state
   const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalScreen, setModalScreen] = useState<ModalScreen>("login");
 
@@ -107,7 +109,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         },
       )
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setAuthReady(true));
   }, [loadAuth]);
 
   // fetch on mount instead
@@ -215,20 +218,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setModalOpen(true);
   };
 
-  const closeModal = (red: Boolean = false) => {
+  const closeModal = (red: boolean = false) => {
     setModalOpen(false);
     if (red === true) navigate('/');
   };
 
   const login = (userData: User) => {
     setUser(userData);
-    setLoadCart(!loadCart);
-    setloadOrder(!loadOrder);
-    setloadStaff(!loadStaff);
-    
+    setLoadCart((prev: boolean) => !prev);
+    setloadOrder((prev: boolean) => !prev);
+    setloadStaff((prev: boolean) => !prev);
     closeModal();
-    window.location.reload();
-    //console.log({data: userData});
   };
 
   const logout = async () => {
@@ -292,6 +292,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setStaff,
         loadStaff,
         setloadStaff,
+        authReady,
       }}
     >
       {children}

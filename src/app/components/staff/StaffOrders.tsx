@@ -6,69 +6,66 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Badge } from "@/app/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "@/app/components/ui/button";
-import {
-  Order,
-  OrderInterface,
-} from "@/app/data/mockData";
+import { Order, OrderInterface } from "@/app/data/mockData";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 import { toast } from "sonner";
 
 export function StaffOrders() {
   const navigate = useNavigate();
-  const { orders, updateOrderStatus } = useApp();
+  const { orders, updateOrderStatus, setloadOrder } = useApp();
   const [selectedOrder, setSelectedOrder] = useState<OrderInterface | null>(
     null,
   );
-
+  const [isProcessing, setIsProcessing] = useState(false);
   const newOrders = orders.filter((o) => o.status === "new");
   const inProgressOrders = orders.filter((o) => o.status === "in-progress");
   const completedOrders = orders.filter((o) => o.status === "completed");
 
   const handleAccept = async (orderId: string) => {
+    setIsProcessing(true);
     try {
-      const formData = {
+      await updateOrder({
         id: orderId,
         status: "in-progress",
-      };
-      const response = await updateOrder(formData);
-
-      console.log(response);
+      });
 
       updateOrderStatus(orderId, "in-progress");
+      setloadOrder((prev: boolean) => !prev);
       toast.success("Order accepted");
       setSelectedOrder(null);
     } catch (error) {
       toast.error("Failed to accept order");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleComplete = async (orderId: string) => {
+    setIsProcessing(true);
     try {
-      const formData = {
+      await updateOrder({
         id: orderId,
         status: "completed",
-      };
-      const response = await updateOrder(formData);
-
-      console.log(response);
+      });
 
       updateOrderStatus(orderId, "completed");
+      setloadOrder((prev: boolean) => !prev);
       toast.success("Order marked as completed");
       setSelectedOrder(null);
     } catch (error) {
       console.error(error);
       toast.error("Failed to mark order as completed");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const updateOrder = async (order: OrderInterface) => {
-    const update = await ApiRequest({
+    return await ApiRequest({
       url: `${baseUrl}/orders`,
       method: "PUT",
       body: order,
     });
-
-    return { update: update, product: update };
   };
 
   return (
@@ -166,6 +163,7 @@ export function StaffOrders() {
                 {selectedOrder.status === "new" && (
                   <Button
                     onClick={() => handleAccept(selectedOrder.id)}
+                    disabled={isProcessing}
                     className="flex-1"
                   >
                     Accept Order
@@ -174,6 +172,7 @@ export function StaffOrders() {
                 {selectedOrder.status === "in-progress" && (
                   <Button
                     onClick={() => handleComplete(selectedOrder.id)}
+                    disabled={isProcessing}
                     className="flex-1"
                   >
                     Mark as Completed

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { AppProvider, useApp } from "@/app/contexts/AppContext";
 import { Toaster } from "@/app/components/ui/sonner";
 
@@ -26,8 +27,15 @@ import { OwnerStaff } from "@/app/components/owner/OwnerStaff";
 import { OwnerSettings } from "@/app/components/owner/OwnerSettings";
 
 function AppRoutes() {
-  const { userRole } = useApp();
+const { authReady } = useApp();
 
+if (!authReady) {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+    </div>
+  );
+}
   return (
     <>
       <Routes>

@@ -1,20 +1,88 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useApp } from "@/app/contexts/AppContext";
-import { Button } from '@/app/components/ui/button';
-import { Badge } from '@/app/components/ui/badge';
+import { Button } from "@/app/components/ui/button";
+import { Badge } from "@/app/components/ui/badge";
+import { OrderInterface } from "@/app/data/interFaces";
+import { toast } from "sonner";
+import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
+
+type ConfirmationStatus = "loading" | "success" | "error";
 
 export function OrderConfirmation() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { orders } = useApp();
+  const { orders, setloadOrder, loadOrder } = useApp();
 
-  const order = orders.find(o => o.id === orderId);
+  const [status, setStatus] = useState<ConfirmationStatus>("loading");
+  const [order, setOrder] = useState<OrderInterface | undefined>(undefined);
 
-  if (!order) {
+  useEffect(() => {
+    if (!orderId) {
+      setStatus("error");
+      return;
+    }
+
+    ApiRequest({ url: `${baseUrl}/payment/${orderId}` })
+      .then((data: { [key: string]: any }) => {
+        if (data.data.status === "success") {
+          // Reload orders from backend, then find the confirmed order
+          setloadOrder((prev: boolean) => !prev);
+          const confirmedOrder = orders.find(
+            (o: OrderInterface) => o.id === orderId,
+          );
+          setOrder(confirmedOrder);
+          setStatus("success");
+          toast.success("Payment successful");
+        } else {
+          setStatus("error");
+          toast.error(
+            "Payment could not be confirmed. Please contact support.",
+          );
+        }
+      })
+      .catch((error: any) => {
+        console.error("Payment verification error:", error);
+        setStatus("error");
+        toast.error(`Payment verification error: ${error?.message ?? error}`);
+      });
+  }, [orderId]);
+
+  // Re-sync order from context once orders reload from backend
+  useEffect(() => {
+    if (status === "success" && orderId) {
+      const updated = orders.find((o: OrderInterface) => o.id === orderId);
+      if (updated) setOrder(updated);
+    }
+  }, [orders, orderId, status]);
+
+  if (status === "loading") {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Order not found</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-3">
+        <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
+        <p className="text-gray-500">Confirming your payment...</p>
+      </div>
+    );
+  }
+
+  if (status === "error" || !order) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 dark:bg-red-900 rounded-full">
+          <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
+        </div>
+        <h1 className="text-2xl">Payment Failed</h1>
+        <p className="text-gray-500 text-center max-w-xs">
+          We could not confirm your payment. Please contact support if you were
+          charged.
+        </p>
+        <div className="flex gap-3 mt-2">
+          <Button variant="outline" onClick={() => navigate("/orders")}>
+            View Orders
+          </Button>
+          <Button onClick={() => navigate("/")}>Back to Home</Button>
+        </div>
       </div>
     );
   }
@@ -27,7 +95,9 @@ export function OrderConfirmation() {
             <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
           </div>
           <h1 className="text-2xl mb-2">Order Confirmed!</h1>
-          <p className="text-gray-600 dark:text-gray-400">Thank you for your purchase</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Thank you for your purchase
+          </p>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-lg border p-4 mb-4">
@@ -37,13 +107,15 @@ export function OrderConfirmation() {
           </div>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-gray-500">Status</p>
-            <Badge>{order.status.replace('-', ' ')}</Badge>
+            <Badge>{order.status.replace("-", " ")}</Badge>
           </div>
           <div className="border-t pt-4">
             <p className="text-sm text-gray-500 mb-2">Order Summary</p>
-            {order.items.map(item => (
+            {order.items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm mb-1">
-                <span>{item.name} x{item.quantity}</span>
+                <span>
+                  {item.name} x{item.quantity}
+                </span>
                 <span>${(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
@@ -57,10 +129,14 @@ export function OrderConfirmation() {
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate('/orders')} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/orders")}
+            className="flex-1"
+          >
             Track Order
           </Button>
-          <Button onClick={() => navigate('/')} className="flex-1">
+          <Button onClick={() => navigate("/")} className="flex-1">
             Back to Home
           </Button>
         </div>

@@ -58,7 +58,8 @@ export default function AuthModal() {
       //console.log({ sent: {email, password}, res: res});
       //const data = await res.json();
       //if (!res.ok) return setError(data.message || "Invalid credentials");
-      login(res);
+      console.log(res);
+      login(res.user);
     } catch {
       setError("Something went wrong. Try again.");
     } finally {

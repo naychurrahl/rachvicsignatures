@@ -27,9 +27,9 @@ export function Profile() {
             <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h2 className="text-lg">{user ? user.name : "John Doe"}</h2>
+            <h2 className="text-lg">{user ? user.name || user.userId : "John Doe"}</h2>
             <p className="text-sm text-gray-500">
-              {user?.email ?? "john@example.com"}
+              {user? user.email || "something@different.com" : "john@example.com"}
             </p>
           </div>
         </div>

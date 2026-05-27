@@ -1,39 +1,47 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Truck, Store, CreditCard, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  Truck,
+  Store,
+  CreditCard,
+  Wallet,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useApp } from "@/app/contexts/AppContext";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 import { CartItem } from "@/app/data/interFaces";
+
 import PaystackPop from "@paystack/inline-js";
 
 const Paystack = new PaystackPop();
 
 export function Checkout() {
   const navigate = useNavigate();
-  const { cart, clearCart, addOrder } = useApp();
+  const { cart, setLoadCart, addOrder } = useApp();
   const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">(
     "delivery",
   );
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [address, setAddress] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const subtotal = cart.reduce(
-    (sum: string, item: CartItem) => sum + item.price * item.quantity,
+    (sum: number, item: CartItem) => sum + item.price * item.quantity,
     0,
   );
   const deliveryFee = deliveryMethod === "delivery" ? 5.99 : 0;
   const total = subtotal + deliveryFee;
 
   const handlePlaceOrder = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     const order = {
-      //id: `ORD-${Date.now().toString().slice(-6)}`,
-      //date: new Date().toISOString().split('T')[0],
-      //total,
-      //status: 'new' as const,
-      //items: [...cart],
       deliveryMethod,
       address: deliveryMethod === "delivery" ? address : "shop",
       paymentMethod: paymentMethod === "card" ? "Credit Card" : "PayPal",
@@ -41,32 +49,24 @@ export function Checkout() {
 
     try {
       const newOrder = await addOrder(order);
-      
-      if (!newOrder.access_code) {
-        throw new Error("Failed to create order");
+
+      if (!newOrder?.payment?.access_code) {
+        throw new Error("Failed to initialize payment");
       }
+      const goToConfirmation = () => {
+        setLoadCart((prev: boolean) => !prev);
+        navigate(`/order-confirmation/${newOrder.id}`);
+      };
 
-      Paystack.resumeTransaction(newOrder.access_code, {
-        onSuccess: async (response) => {
-          console.log("Payment successful:", response);
-          // Optionally, update order status to 'completed' here
-        },
-        onCancel: () => {
-          console.log("Payment cancelled");
-          // Optionally, update order status to 'cancelled' here
-        },
-        onError: (error) => {
-          console.error("Payment error:", error);
-          // Optionally, update order status to 'failed' here
-        },
+      Paystack.resumeTransaction(newOrder.payment.access_code, {
+        onSuccess: goToConfirmation,
+        onCancel: goToConfirmation,
+        onError: goToConfirmation,
       });
-      
-      clearCart();
-
-
-      navigate(`/order-confirmation/${newOrder.id}`);
     } catch (error) {
       console.error("Failed to place order:", error);
+      toast.error(`Failed to place order: ${error}`);
+      setIsProcessing(false);
     }
   };
 
@@ -77,6 +77,7 @@ export function Checkout() {
         <button
           onClick={() => navigate(-1)}
           className="p-2 -ml-2 active:scale-90 transition-transform"
+          disabled={isProcessing}
         >
           <ArrowLeft className="h-6 w-6" />
         </button>
@@ -122,7 +123,7 @@ export function Checkout() {
           </RadioGroup>
         </div>
 
-        {/* Address Section */}
+        {/* Address */}
         {deliveryMethod === "delivery" && (
           <div className="bg-white dark:bg-gray-900 rounded-lg border p-4 mb-4">
             <h2 className="text-sm mb-3">Delivery Address</h2>
@@ -202,11 +203,18 @@ export function Checkout() {
         </div>
         <Button
           onClick={handlePlaceOrder}
-          disabled={deliveryMethod === "delivery" && !address}
+          disabled={isProcessing || (deliveryMethod === "delivery" && !address)}
           className="w-full h-14 text-lg"
           size="lg"
         >
-          Pay Now
+          {isProcessing ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Processing…
+            </span>
+          ) : (
+            "Pay Now"
+          )}
         </Button>
       </div>
     </div>

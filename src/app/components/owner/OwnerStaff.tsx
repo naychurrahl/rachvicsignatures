@@ -214,7 +214,7 @@ export function OwnerStaff() {
                 <Switch
                   id="active"
                   checked={formData.active === "active"}
-                  onCheckedChange={(checked: Boolean) =>
+                  onCheckedChange={(checked: boolean) =>
                     setFormData({
                       ...formData,
                       active: checked ? "active" : "inactive",
