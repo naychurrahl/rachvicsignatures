@@ -4,7 +4,12 @@ import { Mail } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 
-export function NewsletterCta() {
+interface NewsletterCtaProps {
+  heading: string;
+  body: string;
+}
+
+export function NewsletterCta({ heading, body }: NewsletterCtaProps) {
   const [email, setEmail] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
@@ -23,10 +28,8 @@ export function NewsletterCta() {
         <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
           <Mail className="h-6 w-6" />
         </div>
-        <h2 className="text-2xl mb-2">Stay in the Loop</h2>
-        <p className="text-muted-foreground max-w-md mx-auto mb-6">
-          Get notified about new arrivals and collection drops. No spam, unsubscribe anytime.
-        </p>
+        <h2 className="text-2xl mb-2">{heading}</h2>
+        <p className="text-muted-foreground max-w-md mx-auto mb-6">{body}</p>
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
           <Input
             type="email"

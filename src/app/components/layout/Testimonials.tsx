@@ -5,7 +5,12 @@ import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 import { Review, ReviewsResponse } from "@/app/data/interFaces";
 import { StarRating } from "@/app/components/layout/StarRating";
 
-export function Testimonials() {
+interface TestimonialsProps {
+  eyebrow: string;
+  title: string;
+}
+
+export function Testimonials({ eyebrow, title }: TestimonialsProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [average, setAverage] = useState(0);
   const [count, setCount] = useState(0);
@@ -29,9 +34,9 @@ export function Testimonials() {
       <div className="max-w-6xl mx-auto px-4 py-10 sm:py-14">
         <div className="mb-8 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-primary mb-1">
-            Customer Reviews
+            {eyebrow}
           </p>
-          <h2 className="text-2xl mb-2">What Our Customers Say</h2>
+          <h2 className="text-2xl mb-2">{title}</h2>
           {count > 0 && (
             <div className="flex justify-center">
               <StarRating value={average} count={count} />

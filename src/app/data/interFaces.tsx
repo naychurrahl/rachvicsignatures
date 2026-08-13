@@ -13,6 +13,10 @@ export interface Product {
   description: string;
   rating?: number;
   reviewCount?: number;
+  // null/undefined = inherit the site-wide SiteSettings value; 0 = explicitly unlimited.
+  orderItemLimit?: number | null;
+  refundEnabled?: boolean | null;
+  refundDays?: number | null;
 }
 
 export interface CartItem extends Product {
@@ -96,6 +100,8 @@ export interface Policy {
 }
 
 export interface SiteSettings {
+  siteName: string;
+  siteTagline: string | null;
   contactEmail: string;
   contactPhone: string;
   location: string;
@@ -149,4 +155,53 @@ export interface ChatQueueTicket {
   customerId: string;
   status: "queued";
   createdAt: string;
+}
+
+export interface WhyChooseBenefit {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface SectionHeading {
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+export interface CollectionSpotlightContent {
+  eyebrow?: string;
+  // product ids the owner picked to rotate through; empty/missing falls back to auto top-rated pick.
+  productIds?: string[];
+}
+
+export interface PromoBannerItem {
+  id: string;
+  image?: string | null;
+  eyebrow: string;
+  heading: string;
+  body: string;
+  ctaLabel: string;
+  ctaHref: string;
+  sortOrder: number;
+  active: boolean;
+}
+
+export interface SiteContent {
+  featuredCategories: SectionHeading;
+  newArrivals: SectionHeading;
+  bestSellers: SectionHeading;
+  promoBanners: PromoBannerItem[];
+  shopAll: SectionHeading;
+  collectionSpotlight: CollectionSpotlightContent;
+  whyChooseUs: {
+    eyebrow: string;
+    title: string;
+    benefits: WhyChooseBenefit[];
+  };
+  testimonials: SectionHeading;
+  newsletter: {
+    heading: string;
+    body: string;
+  };
 }

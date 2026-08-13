@@ -13,6 +13,7 @@ import { ProductCard } from "@/app/components/layout/ProductCard";
 import { ProductRail } from "@/app/components/layout/ProductRail";
 import { PromoBanner } from "@/app/components/layout/PromoBanner";
 import { CollectionSpotlight } from "@/app/components/layout/CollectionSpotlight";
+import { AutoCarousel } from "@/app/components/layout/AutoCarousel";
 import { WhyChooseUs } from "@/app/components/layout/WhyChooseUs";
 import { Testimonials } from "@/app/components/layout/Testimonials";
 import { NewsletterCta } from "@/app/components/layout/NewsletterCta";
@@ -27,7 +28,7 @@ export function Home() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const navigate = useNavigate();
-  const { products, categories } = useApp();
+  const { products, categories, content } = useApp();
 
   const filteredProducts = products.filter((product: Product) => {
     const matchesCategory =
@@ -45,12 +46,26 @@ export function Home() {
 
   const newArrivals = useMemo(() => [...products].slice(-8).reverse(), [products]);
 
-  const spotlightProduct = useMemo(
+  const spotlightProducts = useMemo(() => {
+    const pickedIds = content.collectionSpotlight.productIds ?? [];
+    if (pickedIds.length > 0) {
+      return pickedIds
+        .map((id) => products.find((p) => p.id === id))
+        .filter((p): p is Product => !!p);
+    }
+    const top = [...products].sort(
+      (a, b) => (b.rating ?? 0) * (b.reviewCount ?? 0) - (a.rating ?? 0) * (a.reviewCount ?? 0),
+    )[0];
+    return top ? [top] : [];
+  }, [products, content.collectionSpotlight.productIds]);
+
+  const activePromoBanners = useMemo(
     () =>
-      [...products].sort(
-        (a, b) => (b.rating ?? 0) * (b.reviewCount ?? 0) - (a.rating ?? 0) * (a.reviewCount ?? 0),
-      )[0],
-    [products],
+      content.promoBanners
+        .filter((banner) => banner.active)
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [content.promoBanners],
   );
 
   const goToProduct = (product: Product) => navigate(`/product/${product.id}`);
@@ -69,14 +84,52 @@ export function Home() {
 
       <TrustStrip />
 
-      <FeaturedCategories categories={categories} products={products} onSelect={goToCategory} />
+      <ProductRail
+        id="new-arrivals"
+        eyebrow={content.newArrivals.eyebrow}
+        title={content.newArrivals.title ?? "New Arrivals"}
+        subtitle={content.newArrivals.subtitle}
+        products={newArrivals}
+        onSelect={goToProduct}
+      />
+
+      <FeaturedCategories
+        eyebrow={content.featuredCategories.eyebrow ?? ""}
+        title={content.featuredCategories.title ?? "Featured Categories"}
+        categories={categories}
+        products={products}
+        onSelect={goToCategory}
+      />
+
+      <AutoCarousel
+        items={activePromoBanners}
+        renderItem={(banner) => (
+          <PromoBanner
+            image={banner.image}
+            eyebrow={banner.eyebrow}
+            heading={banner.heading}
+            body={banner.body}
+            ctaLabel={banner.ctaLabel}
+            ctaHref={banner.ctaHref}
+          />
+        )}
+      />
+
+      <ProductRail
+        id="best-sellers"
+        eyebrow={content.bestSellers.eyebrow}
+        title={content.bestSellers.title ?? "Best-Selling Products"}
+        subtitle={content.bestSellers.subtitle}
+        products={bestSellers}
+        onSelect={goToProduct}
+      />
 
       <section id="products" className="max-w-6xl mx-auto px-4 py-10 sm:py-14 scroll-mt-20">
         <div className="mb-2">
           <p className="text-xs font-medium uppercase tracking-widest text-primary mb-1">
-            Full Collection
+            {content.shopAll.eyebrow}
           </p>
-          <h2 className="text-2xl">Shop All</h2>
+          <h2 className="text-2xl">{content.shopAll.title ?? "Shop All"}</h2>
         </div>
 
         <CategoryRail
@@ -102,33 +155,29 @@ export function Home() {
         )}
       </section>
 
-      <ProductRail
-        id="best-sellers"
-        eyebrow="Fan Favorites"
-        title="Best-Selling Products"
-        subtitle="Loved and reviewed by our customers"
-        products={bestSellers}
-        onSelect={goToProduct}
+      <AutoCarousel
+        items={spotlightProducts}
+        renderItem={(product) => (
+          <CollectionSpotlight
+            eyebrow={content.collectionSpotlight.eyebrow ?? "Collection Spotlight"}
+            product={product}
+            onSelect={goToProduct}
+          />
+        )}
       />
 
-      <PromoBanner onCtaClick={() => scrollToId("new-arrivals")} />
-
-      <ProductRail
-        id="new-arrivals"
-        eyebrow="Just In"
-        title="New Arrivals"
-        subtitle="Fresh additions to the collection"
-        products={newArrivals}
-        onSelect={goToProduct}
+      <WhyChooseUs
+        eyebrow={content.whyChooseUs.eyebrow}
+        title={content.whyChooseUs.title}
+        benefits={content.whyChooseUs.benefits}
       />
 
-      <CollectionSpotlight product={spotlightProduct} onSelect={goToProduct} />
+      <Testimonials
+        eyebrow={content.testimonials.eyebrow ?? "Customer Reviews"}
+        title={content.testimonials.title ?? "What Our Customers Say"}
+      />
 
-      <WhyChooseUs />
-
-      <Testimonials />
-
-      <NewsletterCta />
+      <NewsletterCta heading={content.newsletter.heading} body={content.newsletter.body} />
 
       <SiteFooter />
     </div>

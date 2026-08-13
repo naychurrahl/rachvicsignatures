@@ -10,27 +10,35 @@ interface SiteHeaderProps {
 }
 
 const NAV_LINKS = [
-  { label: "Shop All", href: "#products" },
-  { label: "Best Sellers", href: "#best-sellers" },
   { label: "New Arrivals", href: "#new-arrivals" },
+  { label: "Best Sellers", href: "#best-sellers" },
+  { label: "Shop All", href: "#products" },
 ];
 
 export function SiteHeader({ searchQuery, onSearchChange }: SiteHeaderProps) {
   const navigate = useNavigate();
-  const { cart, user, openModal } = useApp();
+  const { cart, user, openModal, settings } = useApp();
   const cartCount = cart.reduce((n, item) => n + item.quantity, 0);
+  const [brandLead, ...brandRest] = settings.siteName.split(" ");
+  const brandTail = brandRest.join(" ");
 
   return (
     <header className="sticky top-0 z-20 bg-white/95 dark:bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-950/80 border-b">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
         <button
           onClick={() => navigate("/")}
-          className="text-lg font-semibold tracking-tight whitespace-nowrap"
+          className="order-1 text-lg font-semibold tracking-tight whitespace-nowrap shrink-0"
         >
-          Rachvic <span className="text-primary">Signatures</span>
+          {brandTail ? (
+            <>
+              {brandLead} <span className="text-primary">{brandTail}</span>
+            </>
+          ) : (
+            brandLead
+          )}
         </button>
 
-        <nav className="hidden md:flex items-center gap-5 ml-2 text-sm text-gray-600 dark:text-gray-300 shrink-0">
+        <nav className="order-2 hidden md:flex items-center gap-5 ml-2 text-sm text-gray-600 dark:text-gray-300 shrink-0">
           {NAV_LINKS.map((link) => (
             <a key={link.href} href={link.href} className="hover:text-primary transition-colors whitespace-nowrap">
               {link.label}
@@ -38,17 +46,17 @@ export function SiteHeader({ searchQuery, onSearchChange }: SiteHeaderProps) {
           ))}
         </nav>
 
-        <div className="relative flex-1 max-w-md ml-auto">
+        <div className="order-4 w-full md:order-3 md:w-auto relative min-w-0 md:flex-1 md:max-w-md md:ml-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search products..."
-            className="pl-9 h-10"
+            className="pl-9 h-10 w-full"
           />
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="order-3 md:order-4 flex items-center gap-1 ml-auto md:ml-0 shrink-0">
           <button
             onClick={() => (user ? navigate("/profile") : openModal("login"))}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"

@@ -6,11 +6,12 @@ import { StarRating } from "@/app/components/layout/StarRating";
 import { ArrowRight } from "lucide-react";
 
 interface CollectionSpotlightProps {
+  eyebrow: string;
   product: Product | undefined;
   onSelect: (product: Product) => void;
 }
 
-export function CollectionSpotlight({ product, onSelect }: CollectionSpotlightProps) {
+export function CollectionSpotlight({ eyebrow, product, onSelect }: CollectionSpotlightProps) {
   const { settings } = useApp();
 
   if (!product) return null;
@@ -27,7 +28,7 @@ export function CollectionSpotlight({ product, onSelect }: CollectionSpotlightPr
         </div>
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-primary mb-2">
-            Collection Spotlight
+            {eyebrow}
           </p>
           <h2 className="text-2xl sm:text-3xl mb-3">{product.name}</h2>
           {!!product.reviewCount && (

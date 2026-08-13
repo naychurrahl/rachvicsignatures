@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { formatCurrency } from "@/app/lib/formatCurrency";
+import { maxAddableQuantity } from "@/app/lib/productLimits";
 
 export function Cart() {
   const { cart, updateQuantity, removeFromCart, settings } = useApp();
@@ -75,7 +76,7 @@ export function Cart() {
                   <span className="w-8 text-center">{item.quantity}</span>
                   <button
                     onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                    disabled={item.quantity >= item.stock}
+                    disabled={item.quantity >= maxAddableQuantity(item, settings)}
                     className="w-8 h-8 rounded-full border flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
                     aria-label={`Increase quantity of ${item.name}`}
                   >

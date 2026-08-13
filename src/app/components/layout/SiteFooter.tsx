@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, Link2, LucideIcon } from "lucide-react";
+import {
+  Mail, Phone, MapPin, Instagram, Facebook, Twitter, Youtube, Linkedin, Music2, MessageCircle,
+  Link2, LucideIcon,
+} from "lucide-react";
 import { useApp } from "@/app/contexts/AppContext";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 import { StarRating } from "@/app/components/layout/StarRating";
@@ -10,12 +13,20 @@ const PLATFORM_ICONS: Record<string, LucideIcon> = {
   instagram: Instagram,
   facebook: Facebook,
   twitter: Twitter,
+  youtube: Youtube,
+  linkedin: Linkedin,
+  tiktok: Music2,
+  whatsapp: MessageCircle,
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   twitter: "X (Twitter)",
+  youtube: "YouTube",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+  whatsapp: "WhatsApp",
 };
 
 export function SiteFooter() {
@@ -36,7 +47,7 @@ export function SiteFooter() {
     <footer className="bg-gray-900 text-gray-300 mt-8">
       <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-2 sm:grid-cols-4 gap-8">
         <div>
-          <p className="text-white font-semibold mb-1">Rachvic Signatures</p>
+          <p className="text-white font-semibold mb-1">{settings.siteName}</p>
           {storeReviewCount > 0 && (
             <StarRating value={storeRating} count={storeReviewCount} className="mb-3" />
           )}
@@ -74,17 +85,17 @@ export function SiteFooter() {
         <div>
           <p className="text-white font-semibold mb-3">Contact</p>
           <div className="flex flex-col gap-2 text-sm text-gray-400">
-            <a href={`mailto:${settings.contactEmail}`} className="hover:text-white flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              {settings.contactEmail}
+            <a href={`mailto:${settings.contactEmail}`} className="hover:text-white flex items-start gap-2">
+              <Mail className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="break-all">{settings.contactEmail}</span>
             </a>
-            <a href={`tel:${settings.contactPhone}`} className="hover:text-white flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              {settings.contactPhone}
+            <a href={`tel:${settings.contactPhone}`} className="hover:text-white flex items-start gap-2">
+              <Phone className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="break-words">{settings.contactPhone}</span>
             </a>
-            <span className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              {settings.location}
+            <span className="flex items-start gap-2">
+              <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="break-words">{settings.location}</span>
             </span>
           </div>
         </div>
@@ -92,18 +103,11 @@ export function SiteFooter() {
         <div>
           <p className="text-white font-semibold mb-3">Policies</p>
           <nav className="flex flex-col gap-2 text-sm mb-4">
-            <Link to="/policies/shipping" className="hover:text-white">
-              Shipping
-            </Link>
-            <Link to="/policies/returns" className="hover:text-white">
-              Returns
-            </Link>
-            <Link to="/policies/privacy" className="hover:text-white">
-              Privacy Policy
-            </Link>
-            <Link to="/policies/terms" className="hover:text-white">
-              Terms of Service
-            </Link>
+            {Object.values(settings.policies).map((policy) => (
+              <Link key={policy.slug} to={`/policies/${policy.slug}`} className="hover:text-white">
+                {policy.title}
+              </Link>
+            ))}
           </nav>
           <div className="flex items-center gap-3">
             {settings.socialLinks.map(({ id, platform, url }) => {
@@ -124,7 +128,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-gray-800 px-4 py-4 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} Rachvic Signatures. All rights reserved.
+        © {new Date().getFullYear()} {settings.siteName}. All rights reserved.
       </div>
     </footer>
   );

@@ -3,6 +3,8 @@ import { SiteSettings } from "@/app/data/interFaces";
 // Mirrors backend/misc/db.sql's site_settings/social_links/policies defaults so the UI
 // never flashes blank/broken before GET /settings resolves (or if it fails).
 export const DEFAULT_SETTINGS: SiteSettings = {
+  siteName: "Rachvic Signatures",
+  siteTagline: null,
   contactEmail: "support@rachvicsignatures.com",
   contactPhone: "+234 800 000 0000",
   location: "Lagos, Nigeria",

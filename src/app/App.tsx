@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { AppProvider, useApp } from "@/app/contexts/AppContext";
 import { Toaster } from "@/app/components/ui/sonner";
@@ -19,20 +19,8 @@ import { PolicyPage } from "@/app/components/customer/PolicyPage";
 import { BottomNav } from "@/app/components/BottomNav";
 import { CustomerChatWidget } from "@/app/components/chat/CustomerChatWidget";
 
-// Staff Components
-import { StaffDashboard } from "@/app/components/staff/StaffDashboard";
-import { StaffOrders } from "@/app/components/staff/StaffOrders";
-import { StaffProducts } from "@/app/components/staff/StaffProducts";
-import { StaffChat } from "@/app/components/staff/StaffChat";
-
-// Owner Components
-import { OwnerDashboard } from "@/app/components/owner/OwnerDashboard";
-import { OwnerStaff } from "@/app/components/owner/OwnerStaff";
-import { OwnerSettings } from "@/app/components/owner/OwnerSettings";
-
 function AppRoutes() {
   const { authReady } = useApp();
-  const location = useLocation();
 
   if (!authReady) {
     return (
@@ -41,10 +29,6 @@ function AppRoutes() {
       </div>
     );
   }
-
-  const isBackoffice =
-    location.pathname.startsWith("/staff") ||
-    location.pathname.startsWith("/owner");
 
   return (
     <>
@@ -88,71 +72,11 @@ function AppRoutes() {
           }
         />
 
-        {/* Staff Routes */}
-        <Route
-          path="/staff/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["staff", "admin"]}>
-              <StaffDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/staff/orders"
-          element={
-            <ProtectedRoute allowedRoles={["staff", "admin"]}>
-              <StaffOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/staff/products"
-          element={
-            <ProtectedRoute allowedRoles={["staff", "admin"]}>
-              <StaffProducts />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/staff/chat"
-          element={
-            <ProtectedRoute allowedRoles={["staff", "admin"]}>
-              <StaffChat />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Owner Routes */}
-        <Route
-          path="/owner/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <OwnerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/owner/staff"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <OwnerStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/owner/settings"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <OwnerSettings />
-            </ProtectedRoute>
-          }
-        />
-
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {!isBackoffice && <BottomNav />}
-      {!isBackoffice && <CustomerChatWidget />}
+      <BottomNav />
+      <CustomerChatWidget />
     </>
   );
 }

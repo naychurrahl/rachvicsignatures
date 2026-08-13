@@ -15,13 +15,15 @@ import {
   NewOrderInput,
   OrderInterface,
   Product,
+  SiteContent,
   SiteSettings,
-  Staff,
   User,
   ModalScreen,
 } from "@/app/data/interFaces";
 
 import { DEFAULT_SETTINGS } from "@/app/data/defaultSettings";
+import { DEFAULT_CONTENT } from "@/app/data/defaultContent";
+import { maxAddableQuantity } from "@/app/lib/productLimits";
 
 import {
   ApiRequest,
@@ -71,8 +73,6 @@ interface AppContextType {
   setProducts: (product: Product[]) => void;
   categories: string[];
   setCategories: (categories: string[]) => void;
-  staff: Staff[];
-  setStaff: (staff: Staff[]) => void;
   loadCart: boolean;
   setLoadCart: (data: boolean) => void;
   loadProduct: boolean;
@@ -81,12 +81,13 @@ interface AppContextType {
   setloadOrder: (data: boolean) => void;
   loadAuth: boolean;
   setloadAuth: (data: boolean) => void;
-  loadStaff: boolean;
-  setloadStaff: (data: boolean) => void;
   authReady: boolean;
   settings: SiteSettings;
   loadSettings: boolean;
   setLoadSettings: (data: boolean) => void;
+  content: SiteContent;
+  loadContent: boolean;
+  setLoadContent: (data: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -95,16 +96,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(readGuestCart);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
   const [orders, setOrders] = useState<OrderInterface[]>([]);
 
   const [loadCart, setLoadCart] = useState<boolean>(false);
   const [loadProduct, setLoadProduct] = useState<boolean>(false);
   const [loadOrder, setloadOrder] = useState<boolean>(false);
   const [loadAuth, setloadAuth] = useState<boolean>(false);
-  const [loadStaff, setloadStaff] = useState<boolean>(false);
   const [loadSettings, setLoadSettings] = useState<boolean>(false);
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+  const [loadContent, setLoadContent] = useState<boolean>(false);
+  const [content, setContent] = useState<SiteContent>(DEFAULT_CONTENT);
 
   // auth state
   const [user, setUser] = useState<User | null>(null);
@@ -141,9 +142,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     ApiRequest({ url: `${baseUrl}/settings` })
-      .then((data: SiteSettings) => setSettings(data))
+      .then((data: SiteSettings) => {
+        setSettings(data);
+        if (data.siteName) document.title = data.siteName;
+      })
       .catch(console.error);
   }, [loadSettings]);
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/content` })
+      .then((data: SiteContent) => setContent(data))
+      .catch(console.error);
+  }, [loadContent]);
 
   // fetch on mount instead
   useEffect(() => {
@@ -170,14 +180,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch(console.error);
   }, [loadProduct]);
 
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      ApiRequest({ url: `${baseUrl}/user` })
-        .then((data: Staff[]) => setStaff(data))
-        .catch(console.error);
-    }
-  }, [loadStaff]);
-
   const createOrder = async (order: NewOrderInput) => {
     const update = await ApiRequest({
       url: `${baseUrl}/orders`,
@@ -193,11 +195,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (existing) {
       return prev.map((i) =>
         i.id === item.id
-          ? { ...i, quantity: Math.min(i.quantity + item.quantity, i.stock) }
+          ? { ...i, quantity: Math.min(i.quantity + item.quantity, maxAddableQuantity(i, settings)) }
           : i,
       );
     }
-    return [...prev, { ...item, quantity: Math.min(item.quantity, item.stock) }];
+    return [...prev, { ...item, quantity: Math.min(item.quantity, maxAddableQuantity(item, settings)) }];
   };
 
   const addToCart = async (item: CartItem) => {
@@ -323,7 +325,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setLoadCart((prev: boolean) => !prev);
     setloadOrder((prev: boolean) => !prev);
-    setloadStaff((prev: boolean) => !prev);
   };
 
   const logout = async () => {
@@ -340,7 +341,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setCart([]);
     setOrders([]);
-    setStaff([]);
   };
 
   const updateOrderStatus = (
@@ -384,14 +384,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setloadOrder,
         loadAuth,
         setloadAuth,
-        staff,
-        setStaff,
-        loadStaff,
-        setloadStaff,
         authReady,
         settings,
         loadSettings,
         setLoadSettings,
+        content,
+        loadContent,
+        setLoadContent,
       }}
     >
       {children}

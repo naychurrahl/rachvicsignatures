@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { Review, ReviewsResponse } from "@/app/data/interFaces";
 import { formatCurrency } from "@/app/lib/formatCurrency";
+import { effectiveRefund, maxAddableQuantity } from "@/app/lib/productLimits";
 
 export function ProductDetails() {
   const { id } = useParams();
@@ -85,6 +86,8 @@ export function ProductDetails() {
       </div>
     );
   }
+
+  const refund = effectiveRefund(product, settings);
 
   const handleAddToCart = async () => {
     const expe = { ...product, quantity };
@@ -224,15 +227,19 @@ export function ProductDetails() {
             </button>
             <span className="text-xl w-12 text-center">{quantity}</span>
             <button
-              onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+              onClick={() => setQuantity(Math.min(maxAddableQuantity(product, settings), quantity + 1))}
               className="w-10 h-10 rounded-full border flex items-center justify-center active:scale-90 transition-transform"
-              disabled={quantity >= product.stock}
+              disabled={quantity >= maxAddableQuantity(product, settings)}
               aria-label="Increase quantity"
             >
               <Plus className="h-5 w-5" />
             </button>
           </div>
         </div>
+
+        {refund.enabled && (
+          <p className="mt-4 text-sm text-gray-500">{refund.days}-day returns on this item.</p>
+        )}
       </div>
 
       {/* Fixed Bottom Button */}

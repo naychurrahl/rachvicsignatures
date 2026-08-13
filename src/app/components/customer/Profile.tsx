@@ -79,15 +79,12 @@ export function Profile() {
 
   if (!user) return null;
 
+  const cmsUrl = import.meta.env.VITE_CMS_URL || 'http://localhost:5174';
+
   const backofficeLinks =
-    user.role === 'admin'
-      ? [
-          { label: 'Owner Dashboard', to: '/owner/dashboard' },
-          { label: 'Staff Dashboard', to: '/staff/dashboard' },
-        ]
-      : user.role === 'staff'
-        ? [{ label: 'Staff Dashboard', to: '/staff/dashboard' }]
-        : [];
+    user.role === 'admin' || user.role === 'staff'
+      ? [{ label: 'Store Dashboard', href: cmsUrl }]
+      : [];
 
   return (
     <div className="p-4 pb-20">
@@ -107,14 +104,16 @@ export function Profile() {
       {backofficeLinks.length > 0 && (
         <div className="flex flex-col gap-2 mb-4">
           {backofficeLinks.map((link) => (
-            <button
-              key={link.to}
-              onClick={() => navigate(link.to)}
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
               className="w-full bg-white dark:bg-gray-900 rounded-lg border p-4 flex items-center gap-3 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
             >
               <LayoutDashboard className="h-5 w-5 text-primary" />
               <span>{link.label}</span>
-            </button>
+            </a>
           ))}
         </div>
       )}
