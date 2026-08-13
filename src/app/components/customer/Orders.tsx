@@ -1,13 +1,30 @@
-import { useApp } from '../../contexts/AppContext';
-import { Badge } from '../ui/badge';
+import { useApp } from "@/app/contexts/AppContext";
+import { Badge } from "@/app/components/ui/badge";
 import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Order } from '../../data/mockData';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
+
+import { OrderInterface, CartItem } from "@/app/data/interFaces";
+import { formatCurrency } from "@/app/lib/formatCurrency";
+
 
 export function Orders() {
-  const { orders } = useApp();
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const { orders, user, settings } = useApp();
+  
+  const [selectedOrder, setSelectedOrder] = useState<OrderInterface | null>(
+    null,
+  );
+
+  const staffOrders = orders.filter((order: OrderInterface) => {
+    
+    const matchesCategory = order.userId === user?.userId;
+    return matchesCategory;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -17,12 +34,14 @@ export function Orders() {
         return 'secondary';
       case 'completed':
         return 'default';
+      case 'cancelled':
+        return 'destructive';
       default:
         return 'default';
     }
   };
 
-  if (orders.length === 0) {
+  if (staffOrders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-180px)]">
         <div className="text-gray-400 mb-4">
@@ -39,7 +58,7 @@ export function Orders() {
   return (
     <>
       <div className="p-4 pb-20">
-        {orders.map(order => (
+        {staffOrders.map((order: OrderInterface) => (
           <div
             key={order.id}
             onClick={() => setSelectedOrder(order)}
@@ -51,15 +70,15 @@ export function Orders() {
                 <p className="text-xs text-gray-400 mt-0.5">{order.date}</p>
               </div>
               <Badge variant={getStatusColor(order.status) as any}>
-                {order.status.replace('-', ' ')}
+                {order.status.replace("-", " ")}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                  {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                  {order.items.length} item{order.items.length > 1 ? "s" : ""}
                 </p>
-                <p className="text-lg">${order.total.toFixed(2)}</p>
+                <p className="text-lg">{formatCurrency(order.total, settings.currencySymbol)}</p>
               </div>
               <ChevronRight className="h-5 w-5 text-gray-400" />
             </div>
@@ -67,7 +86,10 @@ export function Orders() {
         ))}
       </div>
 
-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+      <Dialog
+        open={!!selectedOrder}
+        onOpenChange={() => setSelectedOrder(null)}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
@@ -81,9 +103,15 @@ export function Orders() {
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-1">Status</p>
                 <div className="flex gap-2">
-                  <div className={`flex-1 h-2 rounded-full ${selectedOrder.status !== 'new' ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                  <div className={`flex-1 h-2 rounded-full ${selectedOrder.status === 'completed' ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                  <div className={`flex-1 h-2 rounded-full ${selectedOrder.status === 'completed' ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                  <div
+                    className={`flex-1 h-2 rounded-full ${selectedOrder.status !== "new" ? "bg-primary" : "bg-gray-200"}`}
+                  />
+                  <div
+                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
+                  />
+                  <div
+                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
+                  />
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                   <span>Placed</span>
@@ -93,17 +121,24 @@ export function Orders() {
               </div>
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-2">Items</p>
-                {selectedOrder.items.map(item => (
-                  <div key={item.id} className="flex justify-between text-sm mb-1">
-                    <span>{item.name} x{item.quantity}</span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                {selectedOrder.items.map((item: CartItem) => (
+                  <div
+                    key={item.id}
+                    className="flex justify-between text-sm mb-1"
+                  >
+                    <span>
+                      {item.name} x{item.quantity}
+                    </span>
+                    <span>{formatCurrency(item.price * item.quantity, settings.currencySymbol)}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t pt-3">
                 <div className="flex justify-between">
                   <span>Total</span>
-                  <span className="text-lg">${selectedOrder.total.toFixed(2)}</span>
+                  <span className="text-lg">
+                    {formatCurrency(selectedOrder.total, settings.currencySymbol)}
+                  </span>
                 </div>
               </div>
             </div>

@@ -1,14 +1,34 @@
 import { Plus, Minus, Trash2 } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
+import { useApp } from "@/app/contexts/AppContext";
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../ui/button';
+import { Button } from "@/app/components/ui/button";
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
+import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import { formatCurrency } from "@/app/lib/formatCurrency";
+import { maxAddableQuantity } from "@/app/lib/productLimits";
 
 export function Cart() {
-  const { cart, updateQuantity, removeFromCart } = useApp();
+  const { cart, updateQuantity, removeFromCart, settings } = useApp();
   const navigate = useNavigate();
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const handleUpdateQuantity = async (id: string, quantity: number) => {
+    try {
+      await updateQuantity(id, quantity);
+    } catch {
+      toast.error("Failed to update quantity. Please try again.");
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await removeFromCart(id);
+    } catch {
+      toast.error("Failed to remove item. Please try again.");
+    }
+  };
 
   if (cart.length === 0) {
     return (
@@ -39,32 +59,35 @@ export function Cart() {
               className="flex gap-4 mb-4 bg-white dark:bg-gray-900 rounded-lg border p-3"
             >
               <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm mb-1 truncate">{item.name}</h3>
-                <p className="text-lg mb-2">${item.price.toFixed(2)}</p>
+                <p className="text-lg mb-2">{formatCurrency(item.price, settings.currencySymbol)}</p>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                     disabled={item.quantity <= 1}
                     className="w-8 h-8 rounded-full border flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+                    aria-label={`Decrease quantity of ${item.name}`}
                   >
                     <Minus className="h-4 w-4" />
                   </button>
                   <span className="w-8 text-center">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    disabled={item.quantity >= item.stock}
+                    onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                    disabled={item.quantity >= maxAddableQuantity(item, settings)}
                     className="w-8 h-8 rounded-full border flex items-center justify-center active:scale-90 transition-transform disabled:opacity-50"
+                    aria-label={`Increase quantity of ${item.name}`}
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
               </div>
               <button
-                onClick={() => removeFromCart(item.id)}
+                onClick={() => handleRemove(item.id)}
                 className="self-start p-2 text-red-500 active:scale-90 transition-transform"
+                aria-label={`Remove ${item.name} from cart`}
               >
                 <Trash2 className="h-5 w-5" />
               </button>
@@ -77,7 +100,7 @@ export function Cart() {
       <div className="sticky bottom-16 top-80 left-0 right-0 bg-white dark:bg-gray-950 border-t p-4">
         <div className="flex items-center justify-between mb-4">
           <span className="text-lg">Subtotal</span>
-          <span className="text-2xl">${subtotal.toFixed(2)}</span>
+          <span className="text-2xl">{formatCurrency(subtotal, settings.currencySymbol)}</span>
         </div>
         <Button onClick={() => navigate('/checkout')} className="w-full h-14 text-lg" size="lg">
           Checkout

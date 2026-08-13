@@ -1,44 +1,86 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Truck, Store, CreditCard, Wallet } from 'lucide-react';
-import { useApp } from '../../contexts/AppContext';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Truck,
+  Store,
+  CreditCard,
+  Wallet,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useApp } from "@/app/contexts/AppContext";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
+import { CartItem } from "@/app/data/interFaces";
+import { formatCurrency } from "@/app/lib/formatCurrency";
+
+import PaystackPop from "@paystack/inline-js";
+
+const Paystack = new PaystackPop();
 
 export function Checkout() {
   const navigate = useNavigate();
-  const { cart, clearCart, addOrder } = useApp();
-  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [address, setAddress] = useState('');
+  const { cart, setLoadCart, addOrder, settings } = useApp();
+  const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">(
+    "delivery",
+  );
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [address, setAddress] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryFee = deliveryMethod === 'delivery' ? 5.99 : 0;
+  const subtotal = cart.reduce(
+    (sum: number, item: CartItem) => sum + item.price * item.quantity,
+    0,
+  );
+  const deliveryFee = deliveryMethod === "delivery" ? settings.deliveryFee : 0;
   const total = subtotal + deliveryFee;
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     const order = {
-      id: `ORD-${Date.now().toString().slice(-6)}`,
-      date: new Date().toISOString().split('T')[0],
-      total,
-      status: 'new' as const,
-      items: [...cart],
       deliveryMethod,
-      address: deliveryMethod === 'delivery' ? address : undefined,
-      paymentMethod: paymentMethod === 'card' ? 'Credit Card' : 'PayPal'
+      address: deliveryMethod === "delivery" ? address : "shop",
+      paymentMethod: paymentMethod === "card" ? "Credit Card" : "PayPal",
     };
-    addOrder(order);
-    clearCart();
-    navigate(`/order-confirmation/${order.id}`);
+
+    try {
+      const newOrder = await addOrder(order);
+
+      if (!newOrder?.payment?.access_code) {
+        throw new Error("Failed to initialize payment");
+      }
+      const goToConfirmation = () => {
+        setLoadCart((prev: boolean) => !prev);
+        navigate(`/order-confirmation/${newOrder.id}`);
+      };
+
+      Paystack.resumeTransaction(newOrder.payment.access_code, {
+        onSuccess: goToConfirmation,
+        onCancel: goToConfirmation,
+        onError: goToConfirmation,
+      });
+    } catch (error) {
+      console.error("Failed to place order:", error);
+      toast.error(`Failed to place order: ${error}`);
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3 flex items-center">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 active:scale-90 transition-transform">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 -ml-2 active:scale-90 transition-transform"
+          disabled={isProcessing}
+          aria-label="Go back"
+        >
           <ArrowLeft className="h-6 w-6" />
         </button>
         <h1 className="text-lg ml-2">Checkout</h1>
@@ -48,9 +90,18 @@ export function Checkout() {
         {/* Delivery Method */}
         <div className="bg-white dark:bg-gray-900 rounded-lg border p-4 mb-4">
           <h2 className="text-sm mb-3">Delivery Method</h2>
-          <RadioGroup value={deliveryMethod} onValueChange={(v) => setDeliveryMethod(v as 'delivery' | 'pickup')}>
+          <RadioGroup
+            value={deliveryMethod}
+            onValueChange={(v: string) =>
+              setDeliveryMethod(v as "delivery" | "pickup")
+            }
+          >
             <div className="flex items-start gap-3 p-3 rounded-lg border mb-2">
-              <RadioGroupItem value="delivery" id="delivery" className="mt-0.5" />
+              <RadioGroupItem
+                value="delivery"
+                id="delivery"
+                className="mt-0.5"
+              />
               <label htmlFor="delivery" className="flex-1 cursor-pointer">
                 <div className="flex items-center gap-2 mb-1">
                   <Truck className="h-4 w-4" />
@@ -58,7 +109,7 @@ export function Checkout() {
                 </div>
                 <p className="text-xs text-gray-500">Estimated 2-3 days</p>
               </label>
-              <span className="text-sm">$5.99</span>
+              <span className="text-sm">{formatCurrency(settings.deliveryFee, settings.currencySymbol)}</span>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg border">
               <RadioGroupItem value="pickup" id="pickup" className="mt-0.5" />
@@ -74,16 +125,18 @@ export function Checkout() {
           </RadioGroup>
         </div>
 
-        {/* Address Section */}
-        {deliveryMethod === 'delivery' && (
+        {/* Address */}
+        {deliveryMethod === "delivery" && (
           <div className="bg-white dark:bg-gray-900 rounded-lg border p-4 mb-4">
             <h2 className="text-sm mb-3">Delivery Address</h2>
             <div>
-              <Label htmlFor="address" className="text-xs text-gray-500">Street Address</Label>
+              <Label htmlFor="address" className="text-xs text-gray-500">
+                Street Address
+              </Label>
               <Input
                 id="address"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e: any) => setAddress(e.target.value)}
                 placeholder="123 Main St, City, State 12345"
                 className="mt-1"
               />
@@ -97,14 +150,20 @@ export function Checkout() {
           <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
             <div className="flex items-center gap-3 p-3 rounded-lg border mb-2">
               <RadioGroupItem value="card" id="card" />
-              <label htmlFor="card" className="flex items-center gap-2 flex-1 cursor-pointer">
+              <label
+                htmlFor="card"
+                className="flex items-center gap-2 flex-1 cursor-pointer"
+              >
                 <CreditCard className="h-4 w-4" />
                 <span className="text-sm">Credit Card</span>
               </label>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg border">
               <RadioGroupItem value="paypal" id="paypal" />
-              <label htmlFor="paypal" className="flex items-center gap-2 flex-1 cursor-pointer">
+              <label
+                htmlFor="paypal"
+                className="flex items-center gap-2 flex-1 cursor-pointer"
+              >
                 <Wallet className="h-4 w-4" />
                 <span className="text-sm">PayPal</span>
               </label>
@@ -115,21 +174,23 @@ export function Checkout() {
         {/* Order Summary */}
         <div className="bg-white dark:bg-gray-900 rounded-lg border p-4">
           <h2 className="text-sm mb-3">Order Summary</h2>
-          {cart.map(item => (
+          {cart.map((item: any) => (
             <div key={item.id} className="flex justify-between text-sm mb-2">
-              <span>{item.name} x{item.quantity}</span>
-              <span>${(item.price * item.quantity).toFixed(2)}</span>
+              <span>
+                {item.name} x{item.quantity}
+              </span>
+              <span>{formatCurrency(item.price * item.quantity, settings.currencySymbol)}</span>
             </div>
           ))}
           <div className="border-t pt-2 mt-2">
             <div className="flex justify-between text-sm mb-1">
               <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{formatCurrency(subtotal, settings.currencySymbol)}</span>
             </div>
-            {deliveryMethod === 'delivery' && (
+            {deliveryMethod === "delivery" && (
               <div className="flex justify-between text-sm mb-1">
                 <span>Delivery</span>
-                <span>${deliveryFee.toFixed(2)}</span>
+                <span>{formatCurrency(deliveryFee, settings.currencySymbol)}</span>
               </div>
             )}
           </div>
@@ -140,15 +201,22 @@ export function Checkout() {
       <div className="sticky bottom-16 left-0 right-0 bg-white dark:bg-gray-900 border-t p-4">
         <div className="flex items-center justify-between mb-4">
           <span className="text-lg">Total</span>
-          <span className="text-2xl">${total.toFixed(2)}</span>
+          <span className="text-2xl">{formatCurrency(total, settings.currencySymbol)}</span>
         </div>
         <Button
           onClick={handlePlaceOrder}
-          disabled={deliveryMethod === 'delivery' && !address}
+          disabled={isProcessing || (deliveryMethod === "delivery" && !address)}
           className="w-full h-14 text-lg"
           size="lg"
         >
-          Pay Now
+          {isProcessing ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Processing…
+            </span>
+          ) : (
+            "Pay Now"
+          )}
         </Button>
       </div>
     </div>

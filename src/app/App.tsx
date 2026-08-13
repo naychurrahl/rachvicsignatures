@@ -1,29 +1,34 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider, useApp } from './contexts/AppContext';
-import { Toaster } from './components/ui/sonner';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { AppProvider, useApp } from "@/app/contexts/AppContext";
+import { Toaster } from "@/app/components/ui/sonner";
+
+import AuthModal from "@/app/components/modal/AuthModal";
+import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 
 // Customer Components
-import { Home } from './components/customer/Home';
-import { ProductDetails } from './components/customer/ProductDetails';
-import { Cart } from './components/customer/Cart';
-import { Checkout } from './components/customer/Checkout';
-import { OrderConfirmation } from './components/customer/OrderConfirmation';
-import { Orders } from './components/customer/Orders';
-import { Profile } from './components/customer/Profile';
-import { BottomNav } from './components/BottomNav';
-
-// Staff Components
-import { StaffDashboard } from './components/staff/StaffDashboard';
-import { StaffOrders } from './components/staff/StaffOrders';
-import { StaffProducts } from './components/staff/StaffProducts';
-
-// Owner Components
-import { OwnerDashboard } from './components/owner/OwnerDashboard';
-import { OwnerStaff } from './components/owner/OwnerStaff';
-import { OwnerSettings } from './components/owner/OwnerSettings';
+import { Home } from "@/app/components/customer/Home";
+import { ProductDetails } from "@/app/components/customer/ProductDetails";
+import { Cart } from "@/app/components/customer/Cart";
+import { Checkout } from "@/app/components/customer/Checkout";
+import { OrderConfirmation } from "@/app/components/customer/OrderConfirmation";
+import { Orders } from "@/app/components/customer/Orders";
+import { Profile } from "@/app/components/customer/Profile";
+import { ResetPassword } from "@/app/components/customer/ResetPassword";
+import { PolicyPage } from "@/app/components/customer/PolicyPage";
+import { BottomNav } from "@/app/components/BottomNav";
+import { CustomerChatWidget } from "@/app/components/chat/CustomerChatWidget";
 
 function AppRoutes() {
-  const { userRole } = useApp();
+  const { authReady } = useApp();
+
+  if (!authReady) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -32,28 +37,46 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/profile" element={<Profile />} />
-
-        {/* Staff Routes */}
-        <Route path="/staff/dashboard" element={<StaffDashboard />} />
-        <Route path="/staff/orders" element={<StaffOrders />} />
-        <Route path="/staff/products" element={<StaffProducts />} />
-
-        {/* Owner Routes */}
-        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-        <Route path="/owner/staff" element={<OwnerStaff />} />
-        <Route path="/owner/settings" element={<OwnerSettings />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/policies/:slug" element={<PolicyPage />} />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "staff", "admin"]}>
+              <Checkout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-confirmation/:orderId"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "staff", "admin"]}>
+              <OrderConfirmation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "staff", "admin"]}>
+              <Orders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "staff", "admin"]}>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Show bottom nav only for customer role and on specific routes */}
-      {userRole === 'customer' && (
-        <BottomNav />
-      )}
+      <BottomNav />
+      <CustomerChatWidget />
     </>
   );
 }
@@ -66,6 +89,7 @@ export default function App() {
           <AppRoutes />
           <Toaster />
         </div>
+        <AuthModal />
       </AppProvider>
     </BrowserRouter>
   );

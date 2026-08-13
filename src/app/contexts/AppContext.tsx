@@ -1,75 +1,398 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { CartItem, Order, mockOrders } from '../data/mockData';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
+
+import {
+  CartItem,
+  NewOrderInput,
+  OrderInterface,
+  Product,
+  SiteContent,
+  SiteSettings,
+  User,
+  ModalScreen,
+} from "@/app/data/interFaces";
+
+import { DEFAULT_SETTINGS } from "@/app/data/defaultSettings";
+import { DEFAULT_CONTENT } from "@/app/data/defaultContent";
+import { maxAddableQuantity } from "@/app/lib/productLimits";
+
+import {
+  ApiRequest,
+  baseUrl,
+  setAuthToken,
+  clearAuthToken,
+} from "@/app/contexts/ApiRequest";
+
+const GUEST_CART_KEY = "guest_cart";
+
+function readGuestCart(): CartItem[] {
+  try {
+    const stored = localStorage.getItem(GUEST_CART_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeGuestCart(cart: CartItem[]) {
+  localStorage.setItem(GUEST_CART_KEY, JSON.stringify(cart));
+}
+
+
 
 interface AppContextType {
   cart: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
+  addToCart: (item: CartItem) => Promise<void>;
+  removeFromCart: (id: string) => Promise<void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
   clearCart: () => void;
-  orders: Order[];
-  addOrder: (order: Order) => void;
-  updateOrderStatus: (orderId: string, status: 'new' | 'in-progress' | 'completed') => void;
-  userRole: 'customer' | 'staff' | 'owner' | null;
-  setUserRole: (role: 'customer' | 'staff' | 'owner' | null) => void;
+  orders: OrderInterface[];
+  addOrder: (order: NewOrderInput) => Promise<OrderInterface>;
+  updateOrderStatus: (
+    orderId: string,
+    status: "new" | "in-progress" | "completed" | "cancelled",
+  ) => void;
+  // auth additions
+  user: User | null;
+  modalOpen: boolean;
+  modalScreen: ModalScreen;
+  openModal: (screen?: ModalScreen) => void;
+  closeModal: (redirectHome?: boolean) => void;
+  login: (user: User, token?: string) => Promise<void>;
+  logout: () => Promise<void>;
+  products: Product[];
+  setProducts: (product: Product[]) => void;
+  categories: string[];
+  setCategories: (categories: string[]) => void;
+  loadCart: boolean;
+  setLoadCart: (data: boolean) => void;
+  loadProduct: boolean;
+  setLoadProduct: (data: boolean) => void;
+  loadOrder: boolean;
+  setloadOrder: (data: boolean) => void;
+  loadAuth: boolean;
+  setloadAuth: (data: boolean) => void;
+  authReady: boolean;
+  settings: SiteSettings;
+  loadSettings: boolean;
+  setLoadSettings: (data: boolean) => void;
+  content: SiteContent;
+  loadContent: boolean;
+  setLoadContent: (data: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
-  const [userRole, setUserRole] = useState<'customer' | 'staff' | 'owner' | null>('customer');
+  const [cart, setCart] = useState<CartItem[]>(readGuestCart);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [orders, setOrders] = useState<OrderInterface[]>([]);
 
-  const addToCart = (item: CartItem) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.id === item.id);
-      if (existing) {
-        return prev.map(i => 
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
-        );
-      }
-      return [...prev, item];
+  const [loadCart, setLoadCart] = useState<boolean>(false);
+  const [loadProduct, setLoadProduct] = useState<boolean>(false);
+  const [loadOrder, setloadOrder] = useState<boolean>(false);
+  const [loadAuth, setloadAuth] = useState<boolean>(false);
+  const [loadSettings, setLoadSettings] = useState<boolean>(false);
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+  const [loadContent, setLoadContent] = useState<boolean>(false);
+  const [content, setContent] = useState<SiteContent>(DEFAULT_CONTENT);
+
+  // auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalScreen, setModalScreen] = useState<ModalScreen>("login");
+
+  const navigate = useNavigate();
+  const { setTheme } = useTheme();
+
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/ping` })
+      .then(
+        (data: {
+          status: "in" | "out";
+          timestamp: String;
+          message: String;
+          user?: User;
+        }) => {
+          if (data.user) {
+            setUser(data.user as User);
+            if (data.user.theme === "light" || data.user.theme === "dark") {
+              setTheme(data.user.theme);
+            }
+            setLoadCart(!loadCart);
+            setloadOrder(!loadOrder);
+          }
+        },
+      )
+      .catch(console.error)
+      .finally(() => setAuthReady(true));
+  }, [loadAuth]);
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/settings` })
+      .then((data: SiteSettings) => {
+        setSettings(data);
+        if (data.siteName) document.title = data.siteName;
+      })
+      .catch(console.error);
+  }, [loadSettings]);
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/content` })
+      .then((data: SiteContent) => setContent(data))
+      .catch(console.error);
+  }, [loadContent]);
+
+  // fetch on mount instead
+  useEffect(() => {
+    if (user)
+      ApiRequest({ url: `${baseUrl}/cart` })
+        .then((data: any) => setCart(data as CartItem[]))
+        .catch(console.error);
+  }, [loadCart]);
+
+  // fetch on mount instead
+  useEffect(() => {
+    if (user)
+      ApiRequest({ url: `${baseUrl}/orders` })
+        .then((data: any) => setOrders(data as OrderInterface[]))
+        .catch(console.error);
+  }, [loadOrder]);
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/product` })
+      .then((data: { products?: Product[]; categories?: string[] }) => {
+        if (Array.isArray(data.products)) setProducts(data.products);
+        if (Array.isArray(data.categories)) setCategories(data.categories);
+      })
+      .catch(console.error);
+  }, [loadProduct]);
+
+  const createOrder = async (order: NewOrderInput) => {
+    const update = await ApiRequest({
+      url: `${baseUrl}/orders`,
+      method: "POST",
+      body: order,
     });
+
+    return update as OrderInterface;
   };
 
-  const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(item => item.id !== id));
+  const mergeCartItem = (prev: CartItem[], item: CartItem) => {
+    const existing = prev.find((i) => i.id === item.id);
+    if (existing) {
+      return prev.map((i) =>
+        i.id === item.id
+          ? { ...i, quantity: Math.min(i.quantity + item.quantity, maxAddableQuantity(i, settings)) }
+          : i,
+      );
+    }
+    return [...prev, { ...item, quantity: Math.min(item.quantity, maxAddableQuantity(item, settings)) }];
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
-    setCart(prev => prev.map(item => 
-      item.id === id ? { ...item, quantity } : item
-    ));
+  const addToCart = async (item: CartItem) => {
+    if (!user) {
+      setCart((prev) => {
+        const next = mergeCartItem(prev, item);
+        writeGuestCart(next);
+        return next;
+      });
+      return;
+    }
+
+    await ApiRequest({
+      url: `${baseUrl}/cart`,
+      method: "POST",
+      body: { product_id: item.id, quantity: item.quantity },
+    });
+
+    setCart((prev) => mergeCartItem(prev, item));
+  };
+
+  const removeFromCart = async (id: string) => {
+    if (!user) {
+      setCart((prev) => {
+        const next = prev.filter((item) => item.id !== id);
+        writeGuestCart(next);
+        return next;
+      });
+      return;
+    }
+
+    await ApiRequest({
+      url: `${baseUrl}/cart/${id}`,
+      method: "DELETE",
+    });
+
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const updateQuantity = async (id: string, quantity: number) => {
+    if (!user) {
+      setCart((prev) => {
+        const next = prev.map((item) =>
+          item.id === id ? { ...item, quantity } : item,
+        );
+        writeGuestCart(next);
+        return next;
+      });
+      return;
+    }
+
+    await ApiRequest({
+      url: `${baseUrl}/cart`,
+      method: "PUT",
+      body: { product_id: id, quantity },
+    });
+
+    setCart((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantity } : item)),
+    );
   };
 
   const clearCart = () => {
     setCart([]);
+    if (!user) writeGuestCart([]);
   };
 
-  const addOrder = (order: Order) => {
-    setOrders(prev => [order, ...prev]);
+  const addOrder = async (order: NewOrderInput) => {
+    const newOrder = await createOrder(order);
+    setOrders((prev) => [newOrder, ...prev]);
+    return newOrder;
   };
 
-  const updateOrderStatus = (orderId: string, status: 'new' | 'in-progress' | 'completed') => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId ? { ...order, status } : order
-    ));
+  //
+  const openModal = (screen: ModalScreen = "login") => {
+    setModalScreen(screen);
+    setModalOpen(true);
+  };
+
+  const closeModal = (red: boolean = false) => {
+    setModalOpen(false);
+    if (red === true) navigate('/');
+  };
+
+  const login = async (userData: User, token?: string) => {
+    if (token) setAuthToken(token);
+    if (userData.theme === "light" || userData.theme === "dark") {
+      setTheme(userData.theme);
+    }
+
+    const guestItems = readGuestCart();
+    setUser(userData);
+    closeModal();
+
+    if (guestItems.length > 0) {
+      const results = await Promise.allSettled(
+        guestItems.map((item) =>
+          ApiRequest({
+            url: `${baseUrl}/cart`,
+            method: "POST",
+            body: { product_id: item.id, quantity: item.quantity },
+          }),
+        ),
+      );
+
+      const failedItems = guestItems.filter((_, i) => results[i].status === "rejected");
+
+      if (failedItems.length > 0) {
+        results.forEach((r, i) => {
+          if (r.status === "rejected") {
+            console.error(`Failed to merge guest cart item ${guestItems[i].id}`, r.reason);
+          }
+        });
+        toast.error(
+          failedItems.length === guestItems.length
+            ? "Couldn't restore your cart. Please add your items again."
+            : "Some cart items couldn't be restored. Please check your cart.",
+        );
+      }
+
+      writeGuestCart(failedItems);
+    }
+
+    setLoadCart((prev: boolean) => !prev);
+    setloadOrder((prev: boolean) => !prev);
+  };
+
+  const logout = async () => {
+    try {
+      await ApiRequest({
+        url: `${baseUrl}/auth/logout`,
+        method: "get",
+      });
+    } catch (err) {
+      console.error("Logout request failed", err);
+    }
+
+    clearAuthToken();
+    setUser(null);
+    setCart([]);
+    setOrders([]);
+  };
+
+  const updateOrderStatus = (
+    orderId: string,
+    status: "new" | "in-progress" | "completed" | "cancelled",
+  ) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId ? { ...order, status } : order,
+      ),
+    );
   };
 
   return (
-    <AppContext.Provider value={{
-      cart,
-      addToCart,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      orders,
-      addOrder,
-      updateOrderStatus,
-      userRole,
-      setUserRole
-    }}>
+    <AppContext.Provider
+      value={{
+        cart,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        orders,
+        addOrder,
+        updateOrderStatus,
+        user,
+        modalOpen,
+        modalScreen,
+        openModal,
+        closeModal,
+        login,
+        logout,
+        products,
+        setProducts,
+        categories,
+        setCategories,
+        loadCart,
+        setLoadCart,
+        loadProduct,
+        setLoadProduct,
+        loadOrder,
+        setloadOrder,
+        loadAuth,
+        setloadAuth,
+        authReady,
+        settings,
+        loadSettings,
+        setLoadSettings,
+        content,
+        loadContent,
+        setLoadContent,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
@@ -78,7 +401,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useApp must be used within AppProvider');
+    throw new Error("useApp must be used within AppProvider");
   }
   return context;
 }

@@ -1,116 +1,185 @@
-import { useState } from "react";
-import { Search, ShoppingBag } from "lucide-react";
-import { mockProducts, categories, Product } from "../../data/mockData";
-import { useApp } from "../../contexts/AppContext";
+import { useMemo, useState } from "react";
+import { Product } from "@/app/data/interFaces";
+import { useApp } from "@/app/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
-import { Badge } from "../ui/badge";
-import { Input } from "../ui/input";
-import Header from "../Header";
-import logo from "../ui/logo.png";
+
+import { AnnouncementBar } from "@/app/components/layout/AnnouncementBar";
+import { SiteHeader } from "@/app/components/layout/SiteHeader";
+import { HeroSection } from "@/app/components/layout/HeroSection";
+import { TrustStrip } from "@/app/components/layout/TrustStrip";
+import { FeaturedCategories } from "@/app/components/layout/FeaturedCategories";
+import { CategoryRail } from "@/app/components/layout/CategoryRail";
+import { ProductCard } from "@/app/components/layout/ProductCard";
+import { ProductRail } from "@/app/components/layout/ProductRail";
+import { PromoBanner } from "@/app/components/layout/PromoBanner";
+import { CollectionSpotlight } from "@/app/components/layout/CollectionSpotlight";
+import { AutoCarousel } from "@/app/components/layout/AutoCarousel";
+import { WhyChooseUs } from "@/app/components/layout/WhyChooseUs";
+import { Testimonials } from "@/app/components/layout/Testimonials";
+import { NewsletterCta } from "@/app/components/layout/NewsletterCta";
+import { SiteFooter } from "@/app/components/layout/SiteFooter";
+
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const navigate = useNavigate();
 
-  const filteredProducts = mockProducts.filter((product) => {
+  const navigate = useNavigate();
+  const { products, categories, content } = useApp();
+
+  const filteredProducts = products.filter((product: Product) => {
     const matchesCategory =
-      selectedCategory === "All" || product.category === selectedCategory;
+      selectedCategory === "All" || product.category.includes(selectedCategory);
     const matchesSearch = product.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
+  const bestSellers = useMemo(
+    () => [...products].sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0)).slice(0, 8),
+    [products],
+  );
+
+  const newArrivals = useMemo(() => [...products].slice(-8).reverse(), [products]);
+
+  const spotlightProducts = useMemo(() => {
+    const pickedIds = content.collectionSpotlight.productIds ?? [];
+    if (pickedIds.length > 0) {
+      return pickedIds
+        .map((id) => products.find((p) => p.id === id))
+        .filter((p): p is Product => !!p);
+    }
+    const top = [...products].sort(
+      (a, b) => (b.rating ?? 0) * (b.reviewCount ?? 0) - (a.rating ?? 0) * (a.reviewCount ?? 0),
+    )[0];
+    return top ? [top] : [];
+  }, [products, content.collectionSpotlight.productIds]);
+
+  const activePromoBanners = useMemo(
+    () =>
+      content.promoBanners
+        .filter((banner) => banner.active)
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [content.promoBanners],
+  );
+
+  const goToProduct = (product: Product) => navigate(`/product/${product.id}`);
+
+  const goToCategory = (category: string) => {
+    setSelectedCategory(category);
+    scrollToId("products");
+  };
+
   return (
-    <>
-      <div className="pb-20">
-      <Header
-          logo={logo}
-          companyName={"Rachvic Signatures"}
+    <div className="pb-20">
+      <AnnouncementBar />
+      <SiteHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+      <HeroSection />
+
+      <TrustStrip />
+
+      <ProductRail
+        id="new-arrivals"
+        eyebrow={content.newArrivals.eyebrow}
+        title={content.newArrivals.title ?? "New Arrivals"}
+        subtitle={content.newArrivals.subtitle}
+        products={newArrivals}
+        onSelect={goToProduct}
       />
-        {/* Search Bar */}
-        <div className="sticky top-0 bg-white dark:bg-gray-950 z-10 p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12"
-            />
-          </div>
+
+      <FeaturedCategories
+        eyebrow={content.featuredCategories.eyebrow ?? ""}
+        title={content.featuredCategories.title ?? "Featured Categories"}
+        categories={categories}
+        products={products}
+        onSelect={goToCategory}
+      />
+
+      <AutoCarousel
+        items={activePromoBanners}
+        renderItem={(banner) => (
+          <PromoBanner
+            image={banner.image}
+            eyebrow={banner.eyebrow}
+            heading={banner.heading}
+            body={banner.body}
+            ctaLabel={banner.ctaLabel}
+            ctaHref={banner.ctaHref}
+          />
+        )}
+      />
+
+      <ProductRail
+        id="best-sellers"
+        eyebrow={content.bestSellers.eyebrow}
+        title={content.bestSellers.title ?? "Best-Selling Products"}
+        subtitle={content.bestSellers.subtitle}
+        products={bestSellers}
+        onSelect={goToProduct}
+      />
+
+      <section id="products" className="max-w-6xl mx-auto px-4 py-10 sm:py-14 scroll-mt-20">
+        <div className="mb-2">
+          <p className="text-xs font-medium uppercase tracking-widest text-primary mb-1">
+            {content.shopAll.eyebrow}
+          </p>
+          <h2 className="text-2xl">{content.shopAll.title ?? "Shop All"}</h2>
         </div>
 
-        {/* Category Chips */}
-        <div className="px-4 py-3 overflow-x-auto">
-          <div className="flex gap-2">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                {category}
-              </button>
+        <CategoryRail
+          categories={categories}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+
+        {filteredProducts.length === 0 ? (
+          <p className="text-center text-muted-foreground py-10">
+            No products match your search.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+            {filteredProducts.map((product: Product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => goToProduct(product)}
+              />
             ))}
           </div>
-        </div>
+        )}
+      </section>
 
-        {/* Product Grid */}
-        <div className="px-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onClick={() => navigate(`/product/${product.id}`)}
-            />
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
+      <AutoCarousel
+        items={spotlightProducts}
+        renderItem={(product) => (
+          <CollectionSpotlight
+            eyebrow={content.collectionSpotlight.eyebrow ?? "Collection Spotlight"}
+            product={product}
+            onSelect={goToProduct}
+          />
+        )}
+      />
 
-function ProductCard({
-  product,
-  onClick,
-}: {
-  product: Product;
-  onClick: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className="bg-white dark:bg-gray-900 rounded-lg border overflow-hidden active:scale-95 transition-transform cursor-pointer"
-    >
-      <div className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-3">
-        <h3 className="text-sm mb-1 line-clamp-2">{product.name}</h3>
-        <p className="text-lg">${product.price.toFixed(2)}</p>
-        <div className="mt-1">
-          {product.stock < 10 ? (
-            <Badge variant="destructive" className="text-xs">
-              Low Stock
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs">
-              In Stock
-            </Badge>
-          )}
-        </div>
-      </div>
+      <WhyChooseUs
+        eyebrow={content.whyChooseUs.eyebrow}
+        title={content.whyChooseUs.title}
+        benefits={content.whyChooseUs.benefits}
+      />
+
+      <Testimonials
+        eyebrow={content.testimonials.eyebrow ?? "Customer Reviews"}
+        title={content.testimonials.title ?? "What Our Customers Say"}
+      />
+
+      <NewsletterCta heading={content.newsletter.heading} body={content.newsletter.body} />
+
+      <SiteFooter />
     </div>
   );
 }
