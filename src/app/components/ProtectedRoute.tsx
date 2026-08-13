@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useApp } from "@/app/contexts/AppContext";
 
@@ -10,12 +11,21 @@ export function ProtectedRoute({
   children,
   allowedRoles,
 }: ProtectedRouteProps) {
-  const { user, openModal } = useApp();
+  const { user, modalOpen, openModal } = useApp();
+  const [attempted, setAttempted] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      openModal("login");
+      setAttempted(true);
+    }
+  }, [user]);
 
   if (!user) {
-    openModal("login");
-    return;
-    //return <Navigate to="/" replace />;
+    // Dismissed the login modal without signing in -- bounce home instead of
+    // leaving a blank protected page behind it.
+    if (attempted && !modalOpen) return <Navigate to="/" replace />;
+    return null;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

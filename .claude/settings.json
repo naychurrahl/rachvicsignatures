@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/xampp/php/php.exe -l \"d:/_files/Documents/www/jaco/guyone/api/Functions.php\")"
+    ]
+  }
+}

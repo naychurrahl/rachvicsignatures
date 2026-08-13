@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useApp } from "@/app/contexts/AppContext";
-import { ArrowLeft, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Package, AlertTriangle, CheckCircle, MessageCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -8,31 +8,19 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { StaffOwnerHeader } from "@/app/components/layout/StaffOwnerHeader";
 
 export function StaffDashboard() {
   const navigate = useNavigate();
-  const { orders, setUserRole } = useApp();
+  const { orders, products } = useApp();
 
   const pendingOrders = orders.filter(o => o.status === 'new').length;
-  const lowStockCount = 3; // Mock data
+  const lowStockCount = products.filter(p => p.stock < 10).length;
   const fulfilledToday = orders.filter(o => o.status === 'completed').length;
-
-  const handleLogout = () => {
-    setUserRole('customer');
-    navigate('/');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center">
-          <button onClick={handleLogout} className="p-2 -ml-2 active:scale-90 transition-transform">
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <h1 className="text-lg ml-2">Staff Dashboard</h1>
-        </div>
-      </div>
+      <StaffOwnerHeader title="Staff Dashboard" onBack={() => navigate('/profile')} />
 
       <div className="p-4">
         {/* Overview Cards */}
@@ -44,7 +32,7 @@ export function StaffDashboard() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-3xl">{pendingOrders}</div>
-                <Package className="h-8 w-8 text-blue-600" />
+                <Package className="h-8 w-8 text-primary" />
               </div>
             </CardContent>
           </Card>
@@ -92,6 +80,14 @@ export function StaffDashboard() {
           >
             <AlertTriangle className="h-5 w-5 mr-3" />
             Product Management
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full h-14 justify-start"
+            onClick={() => navigate('/staff/chat')}
+          >
+            <MessageCircle className="h-5 w-5 mr-3" />
+            Support Chat
           </Button>
         </div>
       </div>

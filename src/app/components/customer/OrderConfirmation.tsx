@@ -7,13 +7,14 @@ import { Badge } from "@/app/components/ui/badge";
 import { OrderInterface } from "@/app/data/interFaces";
 import { toast } from "sonner";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
+import { formatCurrency } from "@/app/lib/formatCurrency";
 
 type ConfirmationStatus = "loading" | "success" | "error";
 
 export function OrderConfirmation() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { orders, setloadOrder, loadOrder } = useApp();
+  const { orders, setloadOrder, loadOrder, settings } = useApp();
 
   const [status, setStatus] = useState<ConfirmationStatus>("loading");
   const [order, setOrder] = useState<OrderInterface | undefined>(undefined);
@@ -57,7 +58,9 @@ export function OrderConfirmation() {
     }
   }, [orders, orderId, status]);
 
-  if (status === "loading") {
+  // Payment is confirmed but the order details haven't arrived from the
+  // background refetch yet -- this is still "loading," not a failure.
+  if (status === "loading" || (status === "success" && !order)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-3">
         <Loader2 className="h-10 w-10 animate-spin text-gray-400" />
@@ -66,7 +69,7 @@ export function OrderConfirmation() {
     );
   }
 
-  if (status === "error" || !order) {
+  if (status === "error") {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 dark:bg-red-900 rounded-full">
@@ -116,13 +119,13 @@ export function OrderConfirmation() {
                 <span>
                   {item.name} x{item.quantity}
                 </span>
-                <span>${(item.price * item.quantity).toFixed(2)}</span>
+                <span>{formatCurrency(item.price * item.quantity, settings.currencySymbol)}</span>
               </div>
             ))}
             <div className="border-t mt-2 pt-2">
               <div className="flex justify-between">
                 <span>Total</span>
-                <span className="text-lg">${order.total.toFixed(2)}</span>
+                <span className="text-lg">{formatCurrency(order.total, settings.currencySymbol)}</span>
               </div>
             </div>
           </div>

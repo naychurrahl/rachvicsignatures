@@ -9,11 +9,12 @@ import {
   DialogTitle,
 } from "@/app/components/ui/dialog";
 
-import { OrderInterface, Product } from "@/app/data/interFaces";
+import { OrderInterface, CartItem } from "@/app/data/interFaces";
+import { formatCurrency } from "@/app/lib/formatCurrency";
 
 
 export function Orders() {
-  const { orders, user } = useApp();
+  const { orders, user, settings } = useApp();
   
   const [selectedOrder, setSelectedOrder] = useState<OrderInterface | null>(
     null,
@@ -33,6 +34,8 @@ export function Orders() {
         return 'secondary';
       case 'completed':
         return 'default';
+      case 'cancelled':
+        return 'destructive';
       default:
         return 'default';
     }
@@ -75,7 +78,7 @@ export function Orders() {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                   {order.items.length} item{order.items.length > 1 ? "s" : ""}
                 </p>
-                <p className="text-lg">${order.total.toFixed(2)}</p>
+                <p className="text-lg">{formatCurrency(order.total, settings.currencySymbol)}</p>
               </div>
               <ChevronRight className="h-5 w-5 text-gray-400" />
             </div>
@@ -101,13 +104,13 @@ export function Orders() {
                 <p className="text-sm text-gray-500 mb-1">Status</p>
                 <div className="flex gap-2">
                   <div
-                    className={`flex-1 h-2 rounded-full ${selectedOrder.status !== "new" ? "bg-blue-600" : "bg-gray-200"}`}
+                    className={`flex-1 h-2 rounded-full ${selectedOrder.status !== "new" ? "bg-primary" : "bg-gray-200"}`}
                   />
                   <div
-                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-blue-600" : "bg-gray-200"}`}
+                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
                   />
                   <div
-                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-blue-600" : "bg-gray-200"}`}
+                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
                   />
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -118,7 +121,7 @@ export function Orders() {
               </div>
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-2">Items</p>
-                {selectedOrder.items.map((item: Product) => (
+                {selectedOrder.items.map((item: CartItem) => (
                   <div
                     key={item.id}
                     className="flex justify-between text-sm mb-1"
@@ -126,7 +129,7 @@ export function Orders() {
                     <span>
                       {item.name} x{item.quantity}
                     </span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>{formatCurrency(item.price * item.quantity, settings.currencySymbol)}</span>
                   </div>
                 ))}
               </div>
@@ -134,7 +137,7 @@ export function Orders() {
                 <div className="flex justify-between">
                   <span>Total</span>
                   <span className="text-lg">
-                    ${selectedOrder.total.toFixed(2)}
+                    {formatCurrency(selectedOrder.total, settings.currencySymbol)}
                   </span>
                 </div>
               </div>

@@ -1,44 +1,35 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from "@/app/contexts/AppContext";
-import { ArrowLeft, DollarSign, ShoppingBag, Users } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { StaffOwnerHeader } from "@/app/components/layout/StaffOwnerHeader";
+import { formatCurrency } from '@/app/lib/formatCurrency';
 
-const chartData = [
-  { day: 'Mon', sales: 1200 },
-  { day: 'Tue', sales: 1900 },
-  { day: 'Wed', sales: 1600 },
-  { day: 'Thu', sales: 2100 },
-  { day: 'Fri', sales: 2400 },
-  { day: 'Sat', sales: 2800 },
-  { day: 'Sun', sales: 2200 },
-];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function OwnerDashboard() {
   const navigate = useNavigate();
-  const { orders, setUserRole } = useApp();
+  const { orders, staff, settings } = useApp();
 
   const totalSales = orders.reduce((sum, order) => sum + order.total, 0);
   const totalOrders = orders.length;
-  const activeStaff = 2; // Mock data
+  const activeStaff = staff.filter((s) => s.status === 'active').length;
 
-  const handleLogout = () => {
-    setUserRole('customer');
-    navigate('/');
-  };
+  const chartData = useMemo(() => {
+    const salesByDay = WEEKDAYS.map((day) => ({ day, sales: 0 }));
+    for (const order of orders) {
+      const dayIndex = new Date(order.date).getDay();
+      if (!Number.isNaN(dayIndex)) salesByDay[dayIndex].sales += order.total;
+    }
+    return salesByDay;
+  }, [orders]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center">
-          <button onClick={handleLogout} className="p-2 -ml-2 active:scale-90 transition-transform">
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <h1 className="text-lg ml-2">Owner Dashboard</h1>
-        </div>
-      </div>
+      <StaffOwnerHeader title="Owner Dashboard" onBack={() => navigate('/profile')} />
 
       <div className="p-4">
         {/* Overview Cards */}
@@ -49,10 +40,9 @@ export function OwnerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-3xl">${totalSales.toFixed(0)}</div>
+                <div className="text-3xl">{formatCurrency(totalSales, settings.currencySymbol)}</div>
                 <DollarSign className="h-8 w-8 text-green-600" />
               </div>
-              <p className="text-xs text-gray-500 mt-2">+12% from last week</p>
             </CardContent>
           </Card>
 
@@ -63,9 +53,8 @@ export function OwnerDashboard() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="text-3xl">{totalOrders}</div>
-                <ShoppingBag className="h-8 w-8 text-blue-600" />
+                <ShoppingBag className="h-8 w-8 text-primary" />
               </div>
-              <p className="text-xs text-gray-500 mt-2">+8% from last week</p>
             </CardContent>
           </Card>
 
@@ -91,10 +80,10 @@ export function OwnerDashboard() {
             <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="day" stroke="#6b7280" />
-                  <YAxis stroke="#6b7280" />
-                  <Bar dataKey="sales" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="day" stroke="var(--color-muted-foreground)" />
+                  <YAxis stroke="var(--color-muted-foreground)" />
+                  <Bar dataKey="sales" fill="var(--color-chart-1)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -7,49 +7,69 @@ import React, {
 } from "react";
 
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
 
 import {
   CartItem,
+  NewOrderInput,
   OrderInterface,
   Product,
+  SiteSettings,
   Staff,
   User,
   ModalScreen,
 } from "@/app/data/interFaces";
 
-import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
+import { DEFAULT_SETTINGS } from "@/app/data/defaultSettings";
 
-/* const CartItems: CartItem[] = await ApiRequest({
-  url: `${baseUrl}/cart`,
-}); */
+import {
+  ApiRequest,
+  baseUrl,
+  setAuthToken,
+  clearAuthToken,
+} from "@/app/contexts/ApiRequest";
+
+const GUEST_CART_KEY = "guest_cart";
+
+function readGuestCart(): CartItem[] {
+  try {
+    const stored = localStorage.getItem(GUEST_CART_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeGuestCart(cart: CartItem[]) {
+  localStorage.setItem(GUEST_CART_KEY, JSON.stringify(cart));
+}
 
 
 
 interface AppContextType {
   cart: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
+  addToCart: (item: CartItem) => Promise<void>;
+  removeFromCart: (id: string) => Promise<void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
   clearCart: () => void;
   orders: OrderInterface[];
-  addOrder: (order: OrderInterface) => void;
+  addOrder: (order: NewOrderInput) => Promise<OrderInterface>;
   updateOrderStatus: (
     orderId: string,
-    status: "new" | "in-progress" | "completed",
+    status: "new" | "in-progress" | "completed" | "cancelled",
   ) => void;
-  userRole: "customer" | "staff" | "admin" | null;
-  setUserRole: (role: "customer" | "staff" | "admin" | null) => void;
   // auth additions
   user: User | null;
   modalOpen: boolean;
   modalScreen: ModalScreen;
   openModal: (screen?: ModalScreen) => void;
-  closeModal: () => void;
-  login: (user: User) => void;
-  logout: () => void;
+  closeModal: (redirectHome?: boolean) => void;
+  login: (user: User, token?: string) => Promise<void>;
+  logout: () => Promise<void>;
   products: Product[];
   setProducts: (product: Product[]) => void;
-  categories: String[];
+  categories: string[];
   setCategories: (categories: string[]) => void;
   staff: Staff[];
   setStaff: (staff: Staff[]) => void;
@@ -64,26 +84,28 @@ interface AppContextType {
   loadStaff: boolean;
   setloadStaff: (data: boolean) => void;
   authReady: boolean;
+  settings: SiteSettings;
+  loadSettings: boolean;
+  setLoadSettings: (data: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(readGuestCart);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Product[]>([]);
-  const [staff, setStaff] = useState<Staff | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [orders, setOrders] = useState<OrderInterface[]>([]);
-  const [userRole, setUserRole] = useState<
-    "customer" | "staff" | "admin" | null
-  >("customer");
 
   const [loadCart, setLoadCart] = useState<boolean>(false);
   const [loadProduct, setLoadProduct] = useState<boolean>(false);
   const [loadOrder, setloadOrder] = useState<boolean>(false);
   const [loadAuth, setloadAuth] = useState<boolean>(false);
   const [loadStaff, setloadStaff] = useState<boolean>(false);
-  
+  const [loadSettings, setLoadSettings] = useState<boolean>(false);
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+
   // auth state
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -91,8 +113,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [modalScreen, setModalScreen] = useState<ModalScreen>("login");
 
   const navigate = useNavigate();
+  const { setTheme } = useTheme();
 
-  
+
   useEffect(() => {
     ApiRequest({ url: `${baseUrl}/ping` })
       .then(
@@ -104,6 +127,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }) => {
           if (data.user) {
             setUser(data.user as User);
+            if (data.user.theme === "light" || data.user.theme === "dark") {
+              setTheme(data.user.theme);
+            }
             setLoadCart(!loadCart);
             setloadOrder(!loadOrder);
           }
@@ -112,6 +138,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch(console.error)
       .finally(() => setAuthReady(true));
   }, [loadAuth]);
+
+  useEffect(() => {
+    ApiRequest({ url: `${baseUrl}/settings` })
+      .then((data: SiteSettings) => setSettings(data))
+      .catch(console.error);
+  }, [loadSettings]);
 
   // fetch on mount instead
   useEffect(() => {
@@ -125,32 +157,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user)
       ApiRequest({ url: `${baseUrl}/orders` })
-        .then((data: any) => {
-          setOrders(data as OrderInterface[]);
-        })
+        .then((data: any) => setOrders(data as OrderInterface[]))
         .catch(console.error);
   }, [loadOrder]);
 
   useEffect(() => {
     ApiRequest({ url: `${baseUrl}/product` })
-      .then((data: { products: Product[]; categories: String[] }) => {
-        setProducts(data.products as Product[]);
-        setCategories(data.categories as String[]);
+      .then((data: { products?: Product[]; categories?: string[] }) => {
+        if (Array.isArray(data.products)) setProducts(data.products);
+        if (Array.isArray(data.categories)) setCategories(data.categories);
       })
       .catch(console.error);
   }, [loadProduct]);
 
   useEffect(() => {
-    if(userRole === 'admin')
-      console.log('here at staff ln AppContext:140');
+    if (user?.role === 'admin') {
       ApiRequest({ url: `${baseUrl}/user` })
-      .then((data: Staff) => {
-        setStaff(data as Staff[]);
-      })
-      .catch(console.error);
+        .then((data: Staff[]) => setStaff(data))
+        .catch(console.error);
+    }
   }, [loadStaff]);
 
-  const createOrder = async (order: OrderInterface) => {
+  const createOrder = async (order: NewOrderInput) => {
     const update = await ApiRequest({
       url: `${baseUrl}/orders`,
       method: "POST",
@@ -160,42 +188,73 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return update as OrderInterface;
   };
 
-  const addToCart = async (item: CartItem) => {
-    const payload = {
-      product_id: item.id,
-      quantity: item.quantity,
-    };
+  const mergeCartItem = (prev: CartItem[], item: CartItem) => {
+    const existing = prev.find((i) => i.id === item.id);
+    if (existing) {
+      return prev.map((i) =>
+        i.id === item.id
+          ? { ...i, quantity: Math.min(i.quantity + item.quantity, i.stock) }
+          : i,
+      );
+    }
+    return [...prev, { ...item, quantity: Math.min(item.quantity, item.stock) }];
+  };
 
-    const cart = await ApiRequest({
+  const addToCart = async (item: CartItem) => {
+    if (!user) {
+      setCart((prev) => {
+        const next = mergeCartItem(prev, item);
+        writeGuestCart(next);
+        return next;
+      });
+      return;
+    }
+
+    await ApiRequest({
       url: `${baseUrl}/cart`,
       method: "POST",
-      body: payload,
+      body: { product_id: item.id, quantity: item.quantity },
     });
 
-    console.log(cart);
-
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i,
-        );
-      }
-      return [...prev, item];
-    });
+    setCart((prev) => mergeCartItem(prev, item));
   };
 
   const removeFromCart = async (id: string) => {
-    const cart = await ApiRequest({
+    if (!user) {
+      setCart((prev) => {
+        const next = prev.filter((item) => item.id !== id);
+        writeGuestCart(next);
+        return next;
+      });
+      return;
+    }
+
+    await ApiRequest({
       url: `${baseUrl}/cart/${id}`,
       method: "DELETE",
     });
 
-    //console.log(cart);
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = async (id: string, quantity: number) => {
+    if (!user) {
+      setCart((prev) => {
+        const next = prev.map((item) =>
+          item.id === id ? { ...item, quantity } : item,
+        );
+        writeGuestCart(next);
+        return next;
+      });
+      return;
+    }
+
+    await ApiRequest({
+      url: `${baseUrl}/cart`,
+      method: "PUT",
+      body: { product_id: id, quantity },
+    });
+
     setCart((prev) =>
       prev.map((item) => (item.id === id ? { ...item, quantity } : item)),
     );
@@ -203,11 +262,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setCart([]);
+    if (!user) writeGuestCart([]);
   };
 
-  const addOrder = async (order: OrderInterface) => {
+  const addOrder = async (order: NewOrderInput) => {
     const newOrder = await createOrder(order);
-    //console.log(newOrder);
     setOrders((prev) => [newOrder, ...prev]);
     return newOrder;
   };
@@ -223,31 +282,70 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (red === true) navigate('/');
   };
 
-  const login = (userData: User) => {
+  const login = async (userData: User, token?: string) => {
+    if (token) setAuthToken(token);
+    if (userData.theme === "light" || userData.theme === "dark") {
+      setTheme(userData.theme);
+    }
+
+    const guestItems = readGuestCart();
     setUser(userData);
+    closeModal();
+
+    if (guestItems.length > 0) {
+      const results = await Promise.allSettled(
+        guestItems.map((item) =>
+          ApiRequest({
+            url: `${baseUrl}/cart`,
+            method: "POST",
+            body: { product_id: item.id, quantity: item.quantity },
+          }),
+        ),
+      );
+
+      const failedItems = guestItems.filter((_, i) => results[i].status === "rejected");
+
+      if (failedItems.length > 0) {
+        results.forEach((r, i) => {
+          if (r.status === "rejected") {
+            console.error(`Failed to merge guest cart item ${guestItems[i].id}`, r.reason);
+          }
+        });
+        toast.error(
+          failedItems.length === guestItems.length
+            ? "Couldn't restore your cart. Please add your items again."
+            : "Some cart items couldn't be restored. Please check your cart.",
+        );
+      }
+
+      writeGuestCart(failedItems);
+    }
+
     setLoadCart((prev: boolean) => !prev);
     setloadOrder((prev: boolean) => !prev);
     setloadStaff((prev: boolean) => !prev);
-    closeModal();
   };
 
   const logout = async () => {
-    await ApiRequest({
-      url: `${baseUrl}/auth/logout`,
-      method: "get",
-    });
+    try {
+      await ApiRequest({
+        url: `${baseUrl}/auth/logout`,
+        method: "get",
+      });
+    } catch (err) {
+      console.error("Logout request failed", err);
+    }
 
+    clearAuthToken();
     setUser(null);
     setCart([]);
     setOrders([]);
     setStaff([]);
-    setUserRole('customer');
-    console.log('out');
   };
 
   const updateOrderStatus = (
     orderId: string,
-    status: "new" | "in-progress" | "completed",
+    status: "new" | "in-progress" | "completed" | "cancelled",
   ) => {
     setOrders((prev) =>
       prev.map((order) =>
@@ -267,8 +365,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         orders,
         addOrder,
         updateOrderStatus,
-        userRole,
-        setUserRole,
         user,
         modalOpen,
         modalScreen,
@@ -293,6 +389,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         loadStaff,
         setloadStaff,
         authReady,
+        settings,
+        loadSettings,
+        setLoadSettings,
       }}
     >
       {children}

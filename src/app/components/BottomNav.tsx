@@ -16,7 +16,7 @@ export function BottomNav() {
         <button
           onClick={() => navigate("/")}
           className={`flex flex-col items-center justify-center gap-1 ${
-            isActive("/") ? "text-blue-600" : "text-gray-600 dark:text-gray-400"
+            isActive("/") ? "text-primary" : "text-gray-600 dark:text-gray-400"
           }`}
         >
           <Home className="h-6 w-6" />
@@ -27,7 +27,7 @@ export function BottomNav() {
           onClick={() => navigate("/cart")}
           className={`flex flex-col items-center justify-center gap-1 relative ${
             isActive("/cart")
-              ? "text-blue-600"
+              ? "text-primary"
               : "text-gray-600 dark:text-gray-400"
           }`}
         >
@@ -47,7 +47,7 @@ export function BottomNav() {
             onClick={() => navigate("/orders")}
             className={`flex flex-col items-center justify-center gap-1 ${
               isActive("/orders")
-                ? "text-blue-600"
+                ? "text-primary"
                 : "text-gray-600 dark:text-gray-400"
             }`}
           >
@@ -60,7 +60,7 @@ export function BottomNav() {
           onClick={() => navigate("/profile")}
           className={`flex flex-col items-center justify-center gap-1 ${
             isActive("/profile")
-              ? "text-blue-600"
+              ? "text-primary"
               : "text-gray-600 dark:text-gray-400"
           }`}
         >

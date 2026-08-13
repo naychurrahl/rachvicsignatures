@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Package, Plus } from "lucide-react";
+import { Search, Package, Plus } from "lucide-react";
 import { Product } from "@/app/data/interFaces";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 import { Input } from "@/app/components/ui/input";
@@ -15,6 +15,9 @@ import {
 import { Label } from "@/app/components/ui/label";
 import { toast } from "sonner";
 import { useApp } from "@/app/contexts/AppContext";
+import { StaffOwnerHeader } from "@/app/components/layout/StaffOwnerHeader";
+import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import { formatCurrency } from "@/app/lib/formatCurrency";
 
 export function StaffProducts() {
   const navigate = useNavigate();
@@ -33,17 +36,22 @@ export function StaffProducts() {
     description: "",
   });
 
-  const { products, setLoadProduct } = useApp();
+  const { products, setLoadProduct, settings } = useApp();
 
   const buildFormData = (product: Product) => {
     const fd = new FormData();
-    fd.append("id", product.id);
+    if (product.id) fd.append("id", product.id);
     fd.append("name", product.name);
     fd.append("price", product.price.toString());
     fd.append("stock", product.stock.toString());
-    fd.append("category", product.category.join(", "));
+    product.category.forEach((cat: string) => fd.append("category[]", cat));
     fd.append("description", product.description);
-    if (imageFile) fd.append("image", imageFile);
+    if (imageFile) {
+      fd.append("image", imageFile);
+    } else {
+      fd.append("image", product.image);
+
+    }
     return fd;
   };
 
@@ -131,29 +139,22 @@ export function StaffProducts() {
     }
   };
 
-  const filteredProducts = products.filter((product) =>
+  const filteredProducts = products.filter((product: Product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center">
-            <button
-              onClick={() => navigate("/staff/dashboard")}
-              className="p-2 -ml-2 active:scale-90 transition-transform"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <h1 className="text-lg ml-2">Product Management</h1>
-          </div>
+      <StaffOwnerHeader
+        title="Product Management"
+        onBack={() => navigate("/staff/dashboard")}
+        action={
           <Button onClick={handleCreate} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Add Product
           </Button>
-        </div>
+        }
+      >
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
@@ -164,11 +165,11 @@ export function StaffProducts() {
             className="pl-10"
           />
         </div>
-      </div>
+      </StaffOwnerHeader>
 
       <div className="p-4">
         <div className="space-y-3">
-          {filteredProducts.map((product) => (
+          {filteredProducts.map((product: Product) => (
             <div
               key={product.id}
               onClick={() => handleEdit(product)}
@@ -176,15 +177,15 @@ export function StaffProducts() {
             >
               <div className="flex gap-3">
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                  <img
-                    src={product.image}
+                  <ImageWithFallback
+                    src={`${product.image}`}
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm mb-1 truncate">{product.name}</h3>
-                  <p className="text-lg mb-1">${product.price.toFixed(2)}</p>
+                  <p className="text-lg mb-1">{formatCurrency(product.price, settings.currencySymbol)}</p>
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -260,8 +261,8 @@ export function StaffProducts() {
                 className="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-800 dark:file:text-gray-300"
               />
               {formData.image && (
-                <img
-                  src={formData.image}
+                <ImageWithFallback
+                  src={`${formData.image}`}
                   alt="Preview"
                   className="mt-2 w-full h-40 object-cover rounded-lg border"
                 />

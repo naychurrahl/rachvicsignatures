@@ -1,25 +1,33 @@
-import { useState } from "react";
-import { Search, ShoppingBag } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Product } from "@/app/data/interFaces";
 import { useApp } from "@/app/contexts/AppContext";
-
 import { useNavigate } from "react-router-dom";
 
-import { Badge } from "@/app/components/ui/badge";
-import { Input } from "@/app/components/ui/input";
-import Header from "@/app/components/Header";
-import logo from "@/app/components/ui/logo.png";
+import { AnnouncementBar } from "@/app/components/layout/AnnouncementBar";
+import { SiteHeader } from "@/app/components/layout/SiteHeader";
+import { HeroSection } from "@/app/components/layout/HeroSection";
+import { TrustStrip } from "@/app/components/layout/TrustStrip";
+import { FeaturedCategories } from "@/app/components/layout/FeaturedCategories";
+import { CategoryRail } from "@/app/components/layout/CategoryRail";
+import { ProductCard } from "@/app/components/layout/ProductCard";
+import { ProductRail } from "@/app/components/layout/ProductRail";
+import { PromoBanner } from "@/app/components/layout/PromoBanner";
+import { CollectionSpotlight } from "@/app/components/layout/CollectionSpotlight";
+import { WhyChooseUs } from "@/app/components/layout/WhyChooseUs";
+import { Testimonials } from "@/app/components/layout/Testimonials";
+import { NewsletterCta } from "@/app/components/layout/NewsletterCta";
+import { SiteFooter } from "@/app/components/layout/SiteFooter";
+
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  
-  const navigate = useNavigate();
-  
-  const { modalOpen, categories } = useApp();
-  console.log("modalOpen:", modalOpen);
 
-  const {  products } = useApp();
+  const navigate = useNavigate();
+  const { products, categories } = useApp();
 
   const filteredProducts = products.filter((product: Product) => {
     const matchesCategory =
@@ -30,96 +38,99 @@ export function Home() {
     return matchesCategory && matchesSearch;
   });
 
+  const bestSellers = useMemo(
+    () => [...products].sort((a, b) => (b.reviewCount ?? 0) - (a.reviewCount ?? 0)).slice(0, 8),
+    [products],
+  );
+
+  const newArrivals = useMemo(() => [...products].slice(-8).reverse(), [products]);
+
+  const spotlightProduct = useMemo(
+    () =>
+      [...products].sort(
+        (a, b) => (b.rating ?? 0) * (b.reviewCount ?? 0) - (a.rating ?? 0) * (a.reviewCount ?? 0),
+      )[0],
+    [products],
+  );
+
+  const goToProduct = (product: Product) => navigate(`/product/${product.id}`);
+
+  const goToCategory = (category: string) => {
+    setSelectedCategory(category);
+    scrollToId("products");
+  };
+
   return (
-    <>
-      <div className="pb-20">
-        <Header
-          logo={logo}
-          companyName={"Rachvic Signatures"}
-        />
-        {/* Search Bar */}
-        <div className="sticky top-0 bg-white dark:bg-gray-950 z-10 p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e: any) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12"
-            />
-          </div>
+    <div className="pb-20">
+      <AnnouncementBar />
+      <SiteHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+      <HeroSection />
+
+      <TrustStrip />
+
+      <FeaturedCategories categories={categories} products={products} onSelect={goToCategory} />
+
+      <section id="products" className="max-w-6xl mx-auto px-4 py-10 sm:py-14 scroll-mt-20">
+        <div className="mb-2">
+          <p className="text-xs font-medium uppercase tracking-widest text-primary mb-1">
+            Full Collection
+          </p>
+          <h2 className="text-2xl">Shop All</h2>
         </div>
-        
-        {/* Category Chips */}
-        <div className="px-4 py-3 overflow-x-auto">
-          <div className="flex gap-2">
-            {categories.map((category: string) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
-                  selectedCategory === category
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                {category}
-              </button>
+
+        <CategoryRail
+          categories={categories}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+
+        {filteredProducts.length === 0 ? (
+          <p className="text-center text-muted-foreground py-10">
+            No products match your search.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+            {filteredProducts.map((product: Product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => goToProduct(product)}
+              />
             ))}
           </div>
-        </div>
+        )}
+      </section>
 
-        {/* Product Grid */}
-        <div className="px-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredProducts.map((product: Product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onClick={() => navigate(`/product/${product.id}`)}
-              //onClick={() => openModal("login")}
-            />
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
+      <ProductRail
+        id="best-sellers"
+        eyebrow="Fan Favorites"
+        title="Best-Selling Products"
+        subtitle="Loved and reviewed by our customers"
+        products={bestSellers}
+        onSelect={goToProduct}
+      />
 
-function ProductCard({
-  product,
-  onClick,
-}: {
-  product: Product;
-  onClick: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className="bg-white dark:bg-gray-900 rounded-lg border overflow-hidden active:scale-95 transition-transform cursor-pointer"
-    >
-      <div className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-3">
-        <h3 className="text-sm mb-1 line-clamp-2">{product.name}</h3>
-        <p className="text-lg">${product.price.toFixed(2)}</p>
-        <div className="mt-1">
-          {product.stock < 10 ? (
-            <Badge variant="destructive" className="text-xs">
-              Low Stock
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs">
-              In Stock
-            </Badge>
-          )}
-        </div>
-      </div>
+      <PromoBanner onCtaClick={() => scrollToId("new-arrivals")} />
+
+      <ProductRail
+        id="new-arrivals"
+        eyebrow="Just In"
+        title="New Arrivals"
+        subtitle="Fresh additions to the collection"
+        products={newArrivals}
+        onSelect={goToProduct}
+      />
+
+      <CollectionSpotlight product={spotlightProduct} onSelect={goToProduct} />
+
+      <WhyChooseUs />
+
+      <Testimonials />
+
+      <NewsletterCta />
+
+      <SiteFooter />
     </div>
   );
 }

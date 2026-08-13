@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, UserCog } from "lucide-react";
+import { Plus, UserCog } from "lucide-react";
 import { Staff } from "@/app/data/interFaces";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 import { Button } from "@/app/components/ui/button";
@@ -23,12 +23,18 @@ import {
 import { Switch } from "@/app/components/ui/switch";
 import { toast } from "sonner";
 import { useApp } from "@/app/contexts/AppContext";
+import { StaffOwnerHeader } from "@/app/components/layout/StaffOwnerHeader";
+
+// fetchUser() (GET) returns `status`, but updateUser()/addUser() (POST/PUT) expect `active` on the wire —
+// this form works in the write shape and maps from/to `status` at the read/write boundary.
+type StaffFormData = Omit<Staff, "status"> & { active: "active" | "inactive" };
 
 export function OwnerStaff() {
   const navigate = useNavigate();
   const [showDialog, setShowDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
-  const [formData, setFormData] = useState<Staff>({
+  const [formData, setFormData] = useState<StaffFormData>({
     id: "",
     name: "",
     email: "",
@@ -36,19 +42,23 @@ export function OwnerStaff() {
     active: "active",
   });
 
-  const { staff, loadStaff, setloadStaff } = useApp();
-  
-  console.log({ staffs: staff, load: loadStaff });
-  if(!staff) setloadStaff(!loadStaff);
+  const { staff, setloadStaff } = useApp();
 
-  const addStaff = async (staff: Staff) => {
-    const add = await ApiRequest({
-      url: `${baseUrl}/user`,
-      method: "POST",
-      body: { ...staff, active: "active" },
-    });
-
-    return { add: add, staff: staff };
+  const addStaff = async (staff: StaffFormData) => {
+    setIsProcessing(true);
+    try {
+      return await ApiRequest({
+        url: `${baseUrl}/user`,
+        method: "POST",
+        body: { ...staff, active: "active" },
+      });
+    } catch (error) {
+      toast.error("Error adding staff member");
+      console.error("Error adding staff member:", error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleEdit = (staff: Staff) => {
@@ -75,53 +85,55 @@ export function OwnerStaff() {
   };
 
   const handleSave = async () => {
-    if (selectedStaff) {
-      await updateStaff(formData);
+    try {
+      if (selectedStaff) {
+        await updateStaff(formData);
+      } else {
+        await addStaff(formData);
+      }
 
-      //console.log(response);
-      toast.success(`${selectedStaff.name ?? selectedStaff.id} updated`);
-      setShowDialog(false);
-    } else {
-      await addStaff(formData);
+      toast.success(
+        selectedStaff
+          ? `${selectedStaff.name ?? selectedStaff.id} updated`
+          : `${formData.name ?? formData.email} created`,
+      );
 
-      toast.success("Staff member created");
+      setloadStaff((prev: boolean) => !prev);
       setShowDialog(false);
+    } catch {
+      // already toasted inside addStaff/updateStaff
     }
-
-    //toast.success(selectedStaff ? 'Staff member updated' : 'Staff member created');
   };
 
-  const updateStaff = async (staff: Staff) => {
-    console.log({ staff: staff });
-    const update = await ApiRequest({
-      url: `${baseUrl}/user`,
-      method: "PUT",
-      body: staff,
-    });
-
-    return { update: update, staff: staff };
+  const updateStaff = async (staff: StaffFormData) => {
+    setIsProcessing(true);
+    try {
+      return await ApiRequest({
+        url: `${baseUrl}/user`,
+        method: "PUT",
+        body: staff,
+      });
+    } catch (error) {
+      toast.error("Error updating staff member");
+      console.error("Error updating staff member:", error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center">
-            <button
-              onClick={() => navigate("/owner/dashboard")}
-              className="p-2 -ml-2 active:scale-90 transition-transform"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <h1 className="text-lg ml-2">Staff Management</h1>
-          </div>
+      <StaffOwnerHeader
+        title="Staff Management"
+        onBack={() => navigate("/owner/dashboard")}
+        action={
           <Button onClick={handleCreate} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Add Staff
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="p-4">
         <div className="space-y-3">
@@ -133,8 +145,8 @@ export function OwnerStaff() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
-                    <UserCog className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <UserCog className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-sm mb-1">{staff.name}</h3>
@@ -223,8 +235,18 @@ export function OwnerStaff() {
                 />
               </div>
             )}
-            <Button onClick={handleSave} className="w-full">
-              {selectedStaff ? "Update Staff" : "Create Staff"}
+            <Button
+              onClick={handleSave}
+              disabled={isProcessing}
+              className="w-full"
+            >
+              {isProcessing
+                ? selectedStaff
+                  ? "Updating..."
+                  : "Creating..."
+                : selectedStaff
+                  ? "Update Staff"
+                  : "Create Staff"}
             </Button>
           </div>
         </DialogContent>

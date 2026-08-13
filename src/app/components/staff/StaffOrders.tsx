@@ -1,25 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useApp } from "@/app/contexts/AppContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Badge } from "@/app/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "@/app/components/ui/button";
-import { Order, OrderInterface } from "@/app/data/mockData";
+import { OrderInterface, CartItem } from "@/app/data/interFaces";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
+import { StaffOwnerHeader } from "@/app/components/layout/StaffOwnerHeader";
 import { toast } from "sonner";
+import { formatCurrency } from "@/app/lib/formatCurrency";
 
 export function StaffOrders() {
   const navigate = useNavigate();
-  const { orders, updateOrderStatus, setloadOrder } = useApp();
+  const { orders, updateOrderStatus, setloadOrder, settings } = useApp();
   const [selectedOrder, setSelectedOrder] = useState<OrderInterface | null>(
     null,
   );
   const [isProcessing, setIsProcessing] = useState(false);
-  const newOrders = orders.filter((o) => o.status === "new");
-  const inProgressOrders = orders.filter((o) => o.status === "in-progress");
-  const completedOrders = orders.filter((o) => o.status === "completed");
+  const newOrders: OrderInterface[] = orders.filter((o: OrderInterface) => o.status === "new");
+  const inProgressOrders: OrderInterface[] = orders.filter((o: OrderInterface) => o.status === "in-progress");
+  const completedOrders: OrderInterface[] = orders.filter((o: OrderInterface) => o.status === "completed");
 
   const handleAccept = async (orderId: string) => {
     setIsProcessing(true);
@@ -35,6 +37,26 @@ export function StaffOrders() {
       setSelectedOrder(null);
     } catch (error) {
       toast.error("Failed to accept order");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = async (orderId: string) => {
+    setIsProcessing(true);
+    try {
+      await updateOrder({
+        id: orderId,
+        status: "cancelled",
+      });
+
+      updateOrderStatus(orderId, "cancelled");
+      setloadOrder((prev: boolean) => !prev);
+      toast.success("Order rejected");
+      setSelectedOrder(null);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to reject order");
     } finally {
       setIsProcessing(false);
     }
@@ -70,16 +92,10 @@ export function StaffOrders() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-4 py-3 flex items-center">
-        <button
-          onClick={() => navigate("/staff/dashboard")}
-          className="p-2 -ml-2 active:scale-90 transition-transform"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </button>
-        <h1 className="text-lg ml-2">Order Management</h1>
-      </div>
+      <StaffOwnerHeader
+        title="Order Management"
+        onBack={() => navigate("/staff/dashboard")}
+      />
 
       <div className="p-4">
         <Tabs defaultValue="new" className="w-full">
@@ -94,15 +110,15 @@ export function StaffOrders() {
           </TabsList>
 
           <TabsContent value="new" className="mt-4">
-            <OrderList orders={newOrders} onSelect={setSelectedOrder} />
+            <OrderList orders={newOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
           </TabsContent>
 
           <TabsContent value="in-progress" className="mt-4">
-            <OrderList orders={inProgressOrders} onSelect={setSelectedOrder} />
+            <OrderList orders={inProgressOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
           </TabsContent>
 
           <TabsContent value="completed" className="mt-4">
-            <OrderList orders={completedOrders} onSelect={setSelectedOrder} />
+            <OrderList orders={completedOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
           </TabsContent>
         </Tabs>
       </div>
@@ -127,7 +143,7 @@ export function StaffOrders() {
               </div>
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-2">Items</p>
-                {selectedOrder.items.map((item) => (
+                {selectedOrder.items.map((item: CartItem) => (
                   <div
                     key={item.id}
                     className="flex justify-between text-sm mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
@@ -138,7 +154,7 @@ export function StaffOrders() {
                         Qty: {item.quantity}
                       </p>
                     </div>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>{formatCurrency(item.price * item.quantity, settings.currencySymbol)}</span>
                   </div>
                 ))}
               </div>
@@ -155,19 +171,29 @@ export function StaffOrders() {
                 <div className="flex justify-between">
                   <span>Total</span>
                   <span className="text-lg">
-                    ${selectedOrder.total.toFixed(2)}
+                    {formatCurrency(selectedOrder.total, settings.currencySymbol)}
                   </span>
                 </div>
               </div>
               <div className="flex gap-2">
                 {selectedOrder.status === "new" && (
-                  <Button
-                    onClick={() => handleAccept(selectedOrder.id)}
-                    disabled={isProcessing}
-                    className="flex-1"
-                  >
-                    Accept Order
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleReject(selectedOrder.id)}
+                      disabled={isProcessing}
+                      className="flex-1"
+                    >
+                      Reject Order
+                    </Button>
+                    <Button
+                      onClick={() => handleAccept(selectedOrder.id)}
+                      disabled={isProcessing}
+                      className="flex-1"
+                    >
+                      Accept Order
+                    </Button>
+                  </>
                 )}
                 {selectedOrder.status === "in-progress" && (
                   <Button
@@ -190,9 +216,11 @@ export function StaffOrders() {
 function OrderList({
   orders,
   onSelect,
+  currencySymbol,
 }: {
-  orders: Order[];
-  onSelect: (order: Order) => void;
+  orders: OrderInterface[];
+  onSelect: (order: OrderInterface) => void;
+  currencySymbol: string;
 }) {
   if (orders.length === 0) {
     return (
@@ -222,7 +250,7 @@ function OrderList({
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                 {order.items.length} item{order.items.length > 1 ? "s" : ""}
               </p>
-              <p className="text-lg">${order.total.toFixed(2)}</p>
+              <p className="text-lg">{formatCurrency(order.total, currencySymbol)}</p>
             </div>
             <Badge
               variant={

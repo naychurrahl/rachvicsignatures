@@ -15,6 +15,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 import { CartItem } from "@/app/data/interFaces";
+import { formatCurrency } from "@/app/lib/formatCurrency";
 
 import PaystackPop from "@paystack/inline-js";
 
@@ -22,7 +23,7 @@ const Paystack = new PaystackPop();
 
 export function Checkout() {
   const navigate = useNavigate();
-  const { cart, setLoadCart, addOrder } = useApp();
+  const { cart, setLoadCart, addOrder, settings } = useApp();
   const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">(
     "delivery",
   );
@@ -34,7 +35,7 @@ export function Checkout() {
     (sum: number, item: CartItem) => sum + item.price * item.quantity,
     0,
   );
-  const deliveryFee = deliveryMethod === "delivery" ? 5.99 : 0;
+  const deliveryFee = deliveryMethod === "delivery" ? settings.deliveryFee : 0;
   const total = subtotal + deliveryFee;
 
   const handlePlaceOrder = async () => {
@@ -78,6 +79,7 @@ export function Checkout() {
           onClick={() => navigate(-1)}
           className="p-2 -ml-2 active:scale-90 transition-transform"
           disabled={isProcessing}
+          aria-label="Go back"
         >
           <ArrowLeft className="h-6 w-6" />
         </button>
@@ -107,7 +109,7 @@ export function Checkout() {
                 </div>
                 <p className="text-xs text-gray-500">Estimated 2-3 days</p>
               </label>
-              <span className="text-sm">$5.99</span>
+              <span className="text-sm">{formatCurrency(settings.deliveryFee, settings.currencySymbol)}</span>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg border">
               <RadioGroupItem value="pickup" id="pickup" className="mt-0.5" />
@@ -177,18 +179,18 @@ export function Checkout() {
               <span>
                 {item.name} x{item.quantity}
               </span>
-              <span>${(item.price * item.quantity).toFixed(2)}</span>
+              <span>{formatCurrency(item.price * item.quantity, settings.currencySymbol)}</span>
             </div>
           ))}
           <div className="border-t pt-2 mt-2">
             <div className="flex justify-between text-sm mb-1">
               <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{formatCurrency(subtotal, settings.currencySymbol)}</span>
             </div>
             {deliveryMethod === "delivery" && (
               <div className="flex justify-between text-sm mb-1">
                 <span>Delivery</span>
-                <span>${deliveryFee.toFixed(2)}</span>
+                <span>{formatCurrency(deliveryFee, settings.currencySymbol)}</span>
               </div>
             )}
           </div>
@@ -199,7 +201,7 @@ export function Checkout() {
       <div className="sticky bottom-16 left-0 right-0 bg-white dark:bg-gray-900 border-t p-4">
         <div className="flex items-center justify-between mb-4">
           <span className="text-lg">Total</span>
-          <span className="text-2xl">${total.toFixed(2)}</span>
+          <span className="text-2xl">{formatCurrency(total, settings.currencySymbol)}</span>
         </div>
         <Button
           onClick={handlePlaceOrder}
