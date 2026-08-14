@@ -1,7 +1,6 @@
 import { apiData } from "@/app/data/interFaces";
 
-export const baseUrl =
-  import.meta.env.VITE_API_URL || "https://rachvic.alwaysdata.net";
+export const baseUrl = import.meta.env.VITE_API_URL || "https://rachvic.alwaysdata.net";
 
 const TOKEN_KEY = "auth_token";
 

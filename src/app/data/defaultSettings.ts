@@ -5,6 +5,7 @@ import { SiteSettings } from "@/app/data/interFaces";
 export const DEFAULT_SETTINGS: SiteSettings = {
   siteName: "Rachvic Signatures",
   siteTagline: null,
+  logoUrl: null,
   contactEmail: "support@rachvicsignatures.com",
   contactPhone: "+234 800 000 0000",
   location: "Lagos, Nigeria",

@@ -14,6 +14,7 @@ import { Checkout } from "@/app/components/customer/Checkout";
 import { OrderConfirmation } from "@/app/components/customer/OrderConfirmation";
 import { Orders } from "@/app/components/customer/Orders";
 import { Profile } from "@/app/components/customer/Profile";
+import { ChangePassword } from "@/app/components/customer/ChangePassword";
 import { ResetPassword } from "@/app/components/customer/ResetPassword";
 import { PolicyPage } from "@/app/components/customer/PolicyPage";
 import { BottomNav } from "@/app/components/BottomNav";
@@ -68,6 +69,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["customer", "staff", "admin"]}>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/change-password"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "staff", "admin"]}>
+              <ChangePassword />
             </ProtectedRoute>
           }
         />
