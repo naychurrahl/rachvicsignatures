@@ -1,6 +1,6 @@
 import { useApp } from "@/app/contexts/AppContext";
 import { Badge } from "@/app/components/ui/badge";
-import { ChevronRight, XCircle } from 'lucide-react';
+import { ArrowUpDown, ChevronRight, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import {
   Dialog,
@@ -8,10 +8,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 
 import { OrderInterface, CartItem } from "@/app/data/interFaces";
 import { formatCurrency } from "@/app/lib/formatCurrency";
 
+type SortKey = "date-desc" | "date-asc" | "total-desc" | "total-asc";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "date-desc", label: "Newest first" },
+  { value: "date-asc", label: "Oldest first" },
+  { value: "total-desc", label: "Total: high to low" },
+  { value: "total-asc", label: "Total: low to high" },
+];
 
 export function Orders() {
   const { orders, user, settings } = useApp();
@@ -19,39 +35,39 @@ export function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<OrderInterface | null>(
     null,
   );
+  const [sortBy, setSortBy] = useState<SortKey>("date-desc");
 
-  const staffOrders = orders.filter((order: OrderInterface) => {
+  const myOrders = orders.filter((order: OrderInterface) => order.userId === user?.userId);
 
-    const matchesCategory = order.userId === user?.userId;
-    return matchesCategory;
+  // `date` is date-only (see backend fetchOrder) so same-day orders tie -- Array#sort is
+  // stable, and the API already returns orders newest-created-first, so ties keep that order.
+  const sortedOrders = [...myOrders].sort((a, b) => {
+    switch (sortBy) {
+      case "date-asc":
+        return a.date.localeCompare(b.date);
+      case "total-desc":
+        return b.total - a.total;
+      case "total-asc":
+        return a.total - b.total;
+      case "date-desc":
+      default:
+        return b.date.localeCompare(a.date);
+    }
   });
 
-  // Payment failure is the most important thing for a customer to see at a
-  // glance, so it overrides the order-status badge even if the order itself
-  // is still nominally "new".
-  const getStatusLabel = (order: OrderInterface) => {
-    if (order.paymentStatus === 'failed') return 'Payment failed';
-    if (order.status === 'cancelled') return 'Rejected';
-    return order.status.replace('-', ' ');
-  };
+  const newOrders = sortedOrders.filter((o) => o.status === "new");
+  const inProgressOrders = sortedOrders.filter((o) => o.status === "in-progress");
+  const completedOrders = sortedOrders.filter((o) => o.status === "completed");
+  // Both failed payments and rejected orders land on status "cancelled" -- split the
+  // view in two so it's clear which happened, without changing the underlying data model.
+  const failedOrders = sortedOrders.filter(
+    (o) => o.status === "cancelled" && o.paymentStatus === "failed",
+  );
+  const rejectedOrders = sortedOrders.filter(
+    (o) => o.status === "cancelled" && o.paymentStatus !== "failed",
+  );
 
-  const getStatusColor = (order: OrderInterface) => {
-    if (order.paymentStatus === 'failed') return 'destructive';
-    switch (order.status) {
-      case 'new':
-        return 'default';
-      case 'in-progress':
-        return 'secondary';
-      case 'completed':
-        return 'default';
-      case 'cancelled':
-        return 'destructive';
-      default:
-        return 'default';
-    }
-  };
-
-  if (staffOrders.length === 0) {
+  if (myOrders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-180px)]">
         <div className="text-gray-400 mb-4">
@@ -67,33 +83,64 @@ export function Orders() {
 
   return (
     <>
-      <div className="p-4 pb-20">
-        {staffOrders.map((order: OrderInterface) => (
-          <div
-            key={order.id}
-            onClick={() => setSelectedOrder(order)}
-            className="bg-white dark:bg-gray-900 rounded-lg border p-4 mb-3 active:scale-98 transition-transform cursor-pointer"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="text-sm text-gray-500">Order #{order.id}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{order.date}</p>
-              </div>
-              <Badge variant={getStatusColor(order) as any}>
-                {getStatusLabel(order)}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                  {order.items.length} item{order.items.length > 1 ? "s" : ""}
-                </p>
-                <p className="text-lg">{formatCurrency(order.total, settings.currencySymbol)}</p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
-            </div>
+      <div className="p-4 pb-24">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg">My Orders</h1>
+          <Select value={sortBy} onValueChange={(v: SortKey) => setSortBy(v)}>
+            <SelectTrigger className="w-[180px]">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-gray-500" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Tabs defaultValue="new" className="w-full">
+          {/* A rigid equal-width grid squeezes labels like "In Progress (3)" until they
+              clip on narrow screens -- let the strip scroll horizontally on mobile instead,
+              and only switch to an equal-width grid once there's room for it at sm+. */}
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="w-max sm:w-full flex sm:grid sm:grid-cols-5 gap-1">
+              <TabsTrigger value="new" className="shrink-0 sm:flex-1">
+                New ({newOrders.length})
+              </TabsTrigger>
+              <TabsTrigger value="in-progress" className="shrink-0 sm:flex-1">
+                In Progress ({inProgressOrders.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="shrink-0 sm:flex-1">
+                Completed ({completedOrders.length})
+              </TabsTrigger>
+              <TabsTrigger value="failed" className="shrink-0 sm:flex-1">
+                Failed ({failedOrders.length})
+              </TabsTrigger>
+              <TabsTrigger value="rejected" className="shrink-0 sm:flex-1">
+                Rejected ({rejectedOrders.length})
+              </TabsTrigger>
+            </TabsList>
           </div>
-        ))}
+
+          <TabsContent value="new" className="mt-4">
+            <OrderList orders={newOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
+          </TabsContent>
+          <TabsContent value="in-progress" className="mt-4">
+            <OrderList orders={inProgressOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
+          </TabsContent>
+          <TabsContent value="completed" className="mt-4">
+            <OrderList orders={completedOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
+          </TabsContent>
+          <TabsContent value="failed" className="mt-4">
+            <OrderList orders={failedOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
+          </TabsContent>
+          <TabsContent value="rejected" className="mt-4">
+            <OrderList orders={rejectedOrders} onSelect={setSelectedOrder} currencySymbol={settings.currencySymbol} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Dialog
@@ -161,6 +208,13 @@ export function Orders() {
                   </div>
                 ))}
               </div>
+              {selectedOrder.deliveryMethod === "delivery" &&
+                selectedOrder.address && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-500 mb-1">Delivery Address</p>
+                    <p className="text-sm">{selectedOrder.address}</p>
+                  </div>
+                )}
               <div className="border-t pt-3">
                 <div className="flex justify-between">
                   <span>Total</span>
@@ -174,5 +228,61 @@ export function Orders() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function OrderList({
+  orders,
+  onSelect,
+  currencySymbol,
+}: {
+  orders: OrderInterface[];
+  onSelect: (order: OrderInterface) => void;
+  currencySymbol: string;
+}) {
+  if (orders.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        No orders in this category
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {orders.map((order) => (
+        <div
+          key={order.id}
+          onClick={() => onSelect(order)}
+          className="bg-white dark:bg-gray-900 rounded-lg border p-4 active:scale-98 transition-transform cursor-pointer"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="text-sm text-gray-500">Order #{order.id}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{order.date}</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-gray-400" />
+          </div>
+          <div className="flex items-center justify-between flex-wrap gap-y-2">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                {order.items.length} item{order.items.length > 1 ? "s" : ""}
+              </p>
+              <p className="text-lg">{formatCurrency(order.total, currencySymbol)}</p>
+            </div>
+            <div className="flex gap-2">
+              {order.paymentStatus === "failed" && (
+                <Badge variant="destructive">payment failed</Badge>
+              )}
+              <Badge
+                variant={order.deliveryMethod === "delivery" ? "default" : "secondary"}
+              >
+                {order.deliveryMethod}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
