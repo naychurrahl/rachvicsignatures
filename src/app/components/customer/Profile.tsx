@@ -3,7 +3,7 @@ import { User, LayoutDashboard, LogOut, Moon, Sun, KeyRound, Pencil } from 'luci
 import { useApp } from '@/app/contexts/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
-import { ApiRequest, baseUrl } from '@/app/contexts/ApiRequest';
+import { ApiRequest, baseUrl, setAuthToken } from '@/app/contexts/ApiRequest';
 import { StarRating } from '@/app/components/layout/StarRating';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Input } from '@/app/components/ui/input';
@@ -89,6 +89,7 @@ export function Profile() {
         method: 'PUT',
         body: { id: user?.userId, name },
       });
+      if (res.token) setAuthToken(res.token);
       setUser(user ? { ...user, name: res.name ?? name } : user);
       setEditingName(false);
       toast.success('Profile updated');
@@ -115,11 +116,12 @@ export function Profile() {
     const next = darkMode ? 'light' : 'dark';
     setTheme(next);
     try {
-      await ApiRequest({
+      const res = await ApiRequest({
         url: `${baseUrl}/user`,
         method: 'PUT',
         body: { id: user?.userId, theme: next },
       });
+      if (res.token) setAuthToken(res.token);
     } catch (error) {
       console.error('Failed to save theme preference', error);
     }
