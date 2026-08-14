@@ -1,6 +1,6 @@
 import { useApp } from "@/app/contexts/AppContext";
 import { Badge } from "@/app/components/ui/badge";
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import {
   Dialog,
@@ -15,19 +15,29 @@ import { formatCurrency } from "@/app/lib/formatCurrency";
 
 export function Orders() {
   const { orders, user, settings } = useApp();
-  
+
   const [selectedOrder, setSelectedOrder] = useState<OrderInterface | null>(
     null,
   );
 
   const staffOrders = orders.filter((order: OrderInterface) => {
-    
+
     const matchesCategory = order.userId === user?.userId;
     return matchesCategory;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  // Payment failure is the most important thing for a customer to see at a
+  // glance, so it overrides the order-status badge even if the order itself
+  // is still nominally "new".
+  const getStatusLabel = (order: OrderInterface) => {
+    if (order.paymentStatus === 'failed') return 'Payment failed';
+    if (order.status === 'cancelled') return 'Rejected';
+    return order.status.replace('-', ' ');
+  };
+
+  const getStatusColor = (order: OrderInterface) => {
+    if (order.paymentStatus === 'failed') return 'destructive';
+    switch (order.status) {
       case 'new':
         return 'default';
       case 'in-progress':
@@ -69,8 +79,8 @@ export function Orders() {
                 <p className="text-sm text-gray-500">Order #{order.id}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{order.date}</p>
               </div>
-              <Badge variant={getStatusColor(order.status) as any}>
-                {order.status.replace("-", " ")}
+              <Badge variant={getStatusColor(order) as any}>
+                {getStatusLabel(order)}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
@@ -102,22 +112,40 @@ export function Orders() {
               </div>
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-1">Status</p>
-                <div className="flex gap-2">
-                  <div
-                    className={`flex-1 h-2 rounded-full ${selectedOrder.status !== "new" ? "bg-primary" : "bg-gray-200"}`}
-                  />
-                  <div
-                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
-                  />
-                  <div
-                    className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Placed</span>
-                  <span>Processing</span>
-                  <span>Delivered</span>
-                </div>
+                {selectedOrder.paymentStatus === "failed" ||
+                selectedOrder.status === "cancelled" ? (
+                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-lg">
+                    <XCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>
+                      {selectedOrder.paymentStatus === "failed"
+                        ? "Payment failed. This order was not placed."
+                        : "This order was rejected."}
+                      {selectedOrder.refundStatus === "refunded" &&
+                        " A refund has been issued."}
+                      {selectedOrder.refundStatus === "failed" &&
+                        " We couldn't process your refund automatically -- please contact support."}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <div
+                        className={`flex-1 h-2 rounded-full ${selectedOrder.status !== "new" ? "bg-primary" : "bg-gray-200"}`}
+                      />
+                      <div
+                        className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
+                      />
+                      <div
+                        className={`flex-1 h-2 rounded-full ${selectedOrder.status === "completed" ? "bg-primary" : "bg-gray-200"}`}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Placed</span>
+                      <span>Processing</span>
+                      <span>Delivered</span>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="mb-4">
                 <p className="text-sm text-gray-500 mb-2">Items</p>

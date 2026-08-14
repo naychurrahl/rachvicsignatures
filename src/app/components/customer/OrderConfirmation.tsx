@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { ApiRequest, baseUrl } from "@/app/contexts/ApiRequest";
 import { formatCurrency } from "@/app/lib/formatCurrency";
 
-type ConfirmationStatus = "loading" | "success" | "error";
+type ConfirmationStatus = "loading" | "success" | "failed" | "error";
 
 export function OrderConfirmation() {
   const { orderId } = useParams();
@@ -27,9 +27,11 @@ export function OrderConfirmation() {
 
     ApiRequest({ url: `${baseUrl}/payment/${orderId}` })
       .then((data: { [key: string]: any }) => {
-        if (data.data.status === "success") {
-          // Reload orders from backend, then find the confirmed order
-          setloadOrder((prev: boolean) => !prev);
+        // Reload orders from backend either way -- the backend has already persisted
+        // whatever the Paystack status resolved to (success or failed).
+        setloadOrder((prev: boolean) => !prev);
+
+        if (data?.data?.status === "success") {
           const confirmedOrder = orders.find(
             (o: OrderInterface) => o.id === orderId,
           );
@@ -37,10 +39,8 @@ export function OrderConfirmation() {
           setStatus("success");
           toast.success("Payment successful");
         } else {
-          setStatus("error");
-          toast.error(
-            "Payment could not be confirmed. Please contact support.",
-          );
+          setStatus("failed");
+          toast.error("Payment was not successful.");
         }
       })
       .catch((error: any) => {
@@ -69,16 +69,37 @@ export function OrderConfirmation() {
     );
   }
 
-  if (status === "error") {
+  if (status === "failed") {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <div className="flex flex-col items-center justify-center h-screen gap-4 p-4">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 dark:bg-red-900 rounded-full">
           <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
         </div>
         <h1 className="text-2xl">Payment Failed</h1>
         <p className="text-gray-500 text-center max-w-xs">
-          We could not confirm your payment. Please contact support if you were
-          charged.
+          Your payment was not completed, so this order hasn't been placed.
+          You haven't been charged.
+        </p>
+        <div className="flex gap-3 mt-2">
+          <Button variant="outline" onClick={() => navigate("/orders")}>
+            View Orders
+          </Button>
+          <Button onClick={() => navigate("/cart")}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4 p-4">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 dark:bg-red-900 rounded-full">
+          <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
+        </div>
+        <h1 className="text-2xl">Couldn't Confirm Payment</h1>
+        <p className="text-gray-500 text-center max-w-xs">
+          Something went wrong while confirming your payment. Please contact
+          support if you were charged.
         </p>
         <div className="flex gap-3 mt-2">
           <Button variant="outline" onClick={() => navigate("/orders")}>

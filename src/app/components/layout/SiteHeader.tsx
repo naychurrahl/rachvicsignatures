@@ -27,8 +27,11 @@ export function SiteHeader({ searchQuery, onSearchChange }: SiteHeaderProps) {
       <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
         <button
           onClick={() => navigate("/")}
-          className="order-1 text-lg font-semibold tracking-tight whitespace-nowrap shrink-0"
+          className="order-1 flex items-center gap-2 text-lg font-semibold tracking-tight whitespace-nowrap shrink-0"
         >
+          {settings.logoUrl && (
+            <img src={settings.logoUrl} alt="" className="h-8 w-auto object-contain" />
+          )}
           {brandTail ? (
             <>
               {brandLead} <span className="text-primary">{brandTail}</span>

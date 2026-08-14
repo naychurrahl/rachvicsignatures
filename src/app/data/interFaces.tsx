@@ -36,6 +36,7 @@ export interface OrderInterface {
   total: number;
   status: "new" | "in-progress" | "completed" | "cancelled";
   paymentStatus: "in-progress" | "failed" | "success";
+  refundStatus: "none" | "pending" | "refunded" | "failed";
   items: CartItem[];
   deliveryMethod: "delivery" | "pickup";
   address?: string;
@@ -102,6 +103,7 @@ export interface Policy {
 export interface SiteSettings {
   siteName: string;
   siteTagline: string | null;
+  logoUrl: string | null;
   contactEmail: string;
   contactPhone: string;
   location: string;

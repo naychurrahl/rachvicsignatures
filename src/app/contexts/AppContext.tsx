@@ -63,6 +63,7 @@ interface AppContextType {
   ) => void;
   // auth additions
   user: User | null;
+  setUser: (user: User | null) => void;
   modalOpen: boolean;
   modalScreen: ModalScreen;
   openModal: (screen?: ModalScreen) => void;
@@ -366,6 +367,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addOrder,
         updateOrderStatus,
         user,
+        setUser,
         modalOpen,
         modalScreen,
         openModal,
